@@ -50,13 +50,13 @@
     const min = formatDateISO(minY, minM, 1);
     const max = formatDateISO(maxD.getFullYear(), maxD.getMonth(), getDaysInMonth(maxD.getFullYear(), maxD.getMonth()));
     return `<tr class="classtimes-row">
-      <td><select class="ct-client" aria-label="Client">${
+      <td data-label="Client name"><select class="ct-client" aria-label="Client">${
         APP_STATE.clients.map(c => `<option value="${escapeHtml(String(c.id))}" ${sameId(c.id, clientId) ? 'selected' : ''}>${escapeHtml(c.name)}</option>`).join('')
       }</select></td>
-      <td><input type="date" class="ct-date" min="${min}" max="${max}" value="${dateStr || ''}" aria-label="Class date"></td>
-      <td><input type="time" class="ct-time" value="${time || ''}" aria-label="Class time"></td>
-      <td><input type="text" class="ct-note" value="${escapeHtml(note || '')}" placeholder="optional" aria-label="Note"></td>
-      <td><button type="button" class="btn-danger-small btn-small ct-remove" aria-label="Remove row">✕</button></td>
+      <td data-label="Date 📅"><input type="date" class="ct-date" min="${min}" max="${max}" value="${dateStr || ''}" aria-label="Class date"></td>
+      <td data-label="Time ⏰"><input type="time" class="ct-time" value="${time || ''}" aria-label="Class time"></td>
+      <td data-label="Note (optional)"><input type="text" class="ct-note" value="${escapeHtml(note || '')}" placeholder="optional" aria-label="Note"></td>
+      <td class="ct-td-actions"><button type="button" class="btn-danger-small btn-small ct-remove" aria-label="Remove row">✕ Remove</button></td>
     </tr>`;
   }
 
