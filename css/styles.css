@@ -78,6 +78,18 @@ input,select,textarea,button{font-family:inherit;}
 .login-card.admin-mode{border-top-color:var(--brand-700);}
 
 .theme-toggle{position:absolute;top:1.2rem;left:0.95rem;z-index:2;}
+
+/* ---- Admin contact block on the login card (email / Instagram / WhatsApp) ---- */
+.admin-contact{margin-top:1.1rem;padding-top:0.9rem;border-top:1px dashed var(--line);text-align:center;}
+.admin-contact-title{font-size:0.78rem;font-weight:700;color:var(--ink-soft, #5b6b7a);margin-bottom:0.55rem;letter-spacing:0.01em;}
+.admin-contact-row{display:flex;gap:0.5rem;justify-content:center;flex-wrap:wrap;}
+.admin-contact-row a{display:inline-flex;align-items:center;justify-content:center;gap:0.3rem;min-height:44px;padding:0.55rem 0.95rem;font-size:0.8rem;font-weight:700;border-radius:var(--r-sm, 0.55rem);text-decoration:none;color:#fff;transition:filter .2s,transform .2s;cursor:pointer;}
+.admin-contact-row a:hover{filter:brightness(1.07);transform:translateY(-1px);}
+.btn-contact-email{background:var(--grad-steel);box-shadow:0 4px 10px -4px rgba(30,77,109,.5);}
+.btn-contact-instagram{background:linear-gradient(45deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888);box-shadow:0 4px 10px -4px rgba(220,39,67,.5);}
+.btn-contact-whatsapp{background:linear-gradient(135deg,#1eb45f,#25D366);box-shadow:0 4px 10px -4px rgba(37,211,102,.5);}
+[data-theme="dark"] .btn-contact-email,[data-theme="dark"] .btn-contact-instagram,[data-theme="dark"] .btn-contact-whatsapp{color:#fff;}
+@media (max-width:480px){.admin-contact-row a{white-space:normal;flex:1 1 auto;}}
 /* Top-right brand corner on the login card.
    The SVG "TAS Personal Training" wordmark and the Drive photo are
    stacked in a vertical column (wordmark ON TOP, photo BELOW) with a
