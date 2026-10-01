@@ -2,8 +2,33 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>TAS Personal Training — Client &amp; Trainer Portal</title>
+<script>
+/* Device class detection (phone / tablet / laptop) — runs before first paint
+   so the layout adapts instantly and re-adapts on rotation or resize. */
+(function(){
+  function apply(){
+    var coarse = false, pointerFine = false;
+    try{ coarse = matchMedia('(pointer:coarse)').matches; }catch(e){}
+    try{ pointerFine = matchMedia('(hover:hover) and (pointer:fine)').matches; }catch(e){}
+    var w = innerWidth || document.documentElement.clientWidth || 9999;
+    var ua = navigator.userAgent || '';
+    var touchLike = coarse || (('ontouchstart' in window) && !pointerFine) ||
+      (/Android|iPhone|iPod/i.test(ua)) ||
+      (/iPad|Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
+    var cls = 'device-laptop';
+    if (w <= 700 && touchLike) cls = 'device-phone';
+    else if (w <= 1023 && touchLike) cls = 'device-tablet';
+    var c = document.documentElement.classList;
+    c.remove('device-phone','device-tablet','device-laptop');
+    c.add(cls);
+  }
+  apply();
+  window.addEventListener('resize', apply, {passive:true});
+  window.addEventListener('orientationchange', function(){ apply(); setTimeout(apply, 250); }, {passive:true});
+})();
+</script>
 <meta name="description" content="Professional personal training portal: session tracking, exercise library, progress analytics and approvals.">
 <meta name="theme-color" content="#1f4e3d" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0b1822" media="(prefers-color-scheme: dark)">
@@ -42,6 +67,7 @@
 </svg>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%231f4e3d'/%3E%3Cstop offset='1' stop-color='%2338826a'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='64' height='64' rx='15' fill='url(%23g)'/%3E%3Cg stroke='%23fff' stroke-width='4.6' stroke-linecap='round' fill='%23fff'%3E%3Cline x1='22' y1='20' x2='42' y2='20'/%3E%3Crect x='13.5' y='13.5' width='7' height='13' rx='2.4' stroke='none'/%3E%3Crect x='43.5' y='13.5' width='7' height='13' rx='2.4' stroke='none'/%3E%3C/g%3E%3Ctext x='32' y='49' text-anchor='middle' font-family='Arial,sans-serif' font-weight='800' font-size='17' letter-spacing='1' fill='%23fff'%3ETAS%3C/text%3E%3C/svg%3E">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="apple-touch-icon-precomposed" href="icons/apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -155,7 +181,7 @@
         <li>Use <em>🔄 Refresh</em> at the top if your trainer just changed something and you don't see it yet.</li>
       </ol>
     </details>
-    <div class="tabs-bar" style="margin-top:1rem;">
+    <div class="tabs-bar client-tabs" role="tablist" aria-label="Client portal">
       <button class="tab-btn active" data-ctab="plan">🏋️ My Plan</button>
       <button class="tab-btn" data-ctab="history">📜 History</button>
       <button class="tab-btn" data-ctab="progress">📈 Progress</button>
