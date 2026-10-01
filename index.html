@@ -117,9 +117,16 @@
 
 <div class="unified-wrap">
   <div class="card login-card" id="loginCard">
+    <!-- Two brand marks, stacked vertically so they NEVER overlap:
+         1) crisp SVG "TAS Personal Training" wordmark (always visible)
+         2) the gym photo below it (loads from Drive; hidden if unavailable) -->
     <div class="login-logo-corner">
-      <svg class="logo-lockup" viewBox="0 0 236 64" role="img" aria-label="TAS Personal Training"><use href="#tas-lockup"/></svg>
-      <img data-gdrive-id="1N651kHeVrz6HEhAc1cRRKGx2DtS-IdX0" alt="Logo">
+      <div class="logo-lockup-wrap">
+        <svg class="logo-lockup" viewBox="0 0 236 64" role="img" aria-label="TAS Personal Training"><use href="#tas-lockup"/></svg>
+      </div>
+      <div class="logo-photo-wrap">
+        <img data-gdrive-id="1N651kHeVrz6HEhAc1cRRKGx2DtS-IdX0" alt="TAS Personal Training logo photo">
+      </div>
     </div>
     <div class="login-head">
       <span class="badge" id="modeBadge">🔐 access</span>
@@ -151,6 +158,7 @@
         </div>
       </div>
       <div class="dash-header-actions">
+        <button class="btn-notify btn-small" id="clientNotifyBtn" title="Turn on alerts for new updates">🔔 Enable</button>
         <button class="btn-update-site btn-small hidden" id="clientUpdateSiteBtn" title="A new version of the site is live — click to load it">🔄 Update Site</button>
         <button class="btn-secondary btn-small" id="clientRefreshBtn" title="Reload latest data from the cloud">🔄 Refresh</button>
         <button class="btn-secondary btn-small" id="clientLogoutBtn" title="Sign out (click again to confirm)">Log out</button>

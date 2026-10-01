@@ -50,6 +50,33 @@ window.isTrainerSession = function () {
   try { return sessionStorage.getItem('tas_trainer_session') === '1'; } catch (e) { return false; }
 };
 
+/* ============================================================
+   SINGLE-DEVICE LOGIN LOCK
+   ------------------------------------------------------------
+   When a client or the admin logs in on THIS device, an
+   "active session" record is saved locally (localStorage).
+   On every page load we check that record BEFORE showing the
+   login form — if it exists the user is taken straight back
+   into their dashboard ("logged in only" on this device).
+   Logging out clears the record so the login screen appears
+   again. Each device keeps its own record, so logins on
+   different devices stay completely separate.
+   ============================================================ */
+const TAS_SESSION_KEY = 'tas_active_session_v1';
+
+window.tasSaveSession = function (sess) {
+  try { localStorage.setItem(TAS_SESSION_KEY, JSON.stringify({ ...sess, ts: Date.now() })); } catch (e) {}
+};
+
+window.tasLoadSession = function () {
+  try { return JSON.parse(localStorage.getItem(TAS_SESSION_KEY) || 'null'); } catch (e) { return null; }
+};
+
+window.tasClearSession = function () {
+  try { localStorage.removeItem(TAS_SESSION_KEY); } catch (e) {}
+  try { sessionStorage.removeItem('tas_trainer_session'); } catch (e) {}
+};
+
 window.clearStatus = function (el) {
   if (el) { el.textContent = ''; el.className = 'status-msg'; }
 };

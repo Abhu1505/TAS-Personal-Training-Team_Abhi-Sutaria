@@ -25,6 +25,11 @@ window.initSupabase = async function () {
     await loadAdminConfig();
     await loadAllData();
     if (typeof window.initRealtimeSync === 'function') window.initRealtimeSync();
+    // Single-device login: if THIS device logged in earlier and never
+    // logged out, skip the login form and restore the dashboard.
+    try {
+      if (typeof window.tryRestoreDeviceSession === 'function') window.tryRestoreDeviceSession();
+    } catch (e) { console.warn('session restore skipped:', e); }
     showToast('☁️ Connected to cloud — data loaded. 📡 Live sync on.', 'success', 2500);
   } catch (err) {
     console.error('Init failed:', err);
