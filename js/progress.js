@@ -195,8 +195,7 @@ window.initClientLogViewer = function () {
 // Open the day-log modal for a specific ISO date from the client portal.
 // Works across month boundaries (the admin grid is single-month, so we set
 // selectedMonth/selectedDay accordingly before reusing the same modal).
-// NEW FLOW: clients get an ✏️ Edit option — while editing, their changes are
-// staged as proposals and only reach the official log after trainer approval.
+// Clients get a READ-ONLY view of their approved log — the trainer maintains it.
 window.openClientDayLog = function (dateStr) {
   const c = APP_STATE.loggedInClient;
   if (!c || !dateStr) return;
@@ -207,7 +206,6 @@ window.openClientDayLog = function (dateStr) {
   APP_STATE.selectedDay = parts[2];
   openDayLogModal(parts[2]);
   if (!APP_STATE.loggedInClient) return;
-  const editing = APP_STATE.clientEditingDay === dateStr;
 
   const body = $('addExerciseBody');
   if (body) body.classList.add('hidden');
@@ -219,51 +217,16 @@ window.openClientDayLog = function (dateStr) {
   document.querySelectorAll('#dayLogModal .remove-log-btn, #dayLogModal .library-chip')
     .forEach(el => el.remove());
 
-  // ✏️ Edit mode: unlock the merged proposal fields and expose a compact
-  // "➕ Propose add" row (reusing the custom-exercise name input).
-  if (editing) {
-    document.querySelectorAll('#dayLogExisting .log-field').forEach(el => { el.disabled = false; });
-    const freeRow = $('freeExName') ? $('freeExName').closest('.free-add-row') : null;
-    if (freeRow) {
-      freeRow.style.display = '';
-      if (!$('clientProposeAddRow')) {
-        const wrap = document.createElement('div');
-        wrap.id = 'clientProposeAddRow';
-        wrap.className = 'day-open-banner';
-        wrap.style.cssText = 'display:flex;gap:0.5rem;align-items:center;margin-top:0.4rem;flex-wrap:wrap;';
-        wrap.innerHTML = `<input type="text" id="clientProposeExName" placeholder="New exercise name…" style="flex:1;min-width:160px;">
-          <button class="btn-primary btn-small" id="clientProposeAddBtn">➕ Propose add</button>`;
-        freeRow.after(wrap);
-        $('clientProposeAddBtn').addEventListener('click', () => {
-          const nm = ($('clientProposeExName').value || '').trim();
-          if (nm) addClientExerciseProposal(nm);
-        });
-      }
-    }
-  } else {
-    const freeRow = $('freeExName') ? $('freeExName').closest('.free-add-row') : null;
-    if (freeRow) freeRow.style.display = 'none';
-    const oldWrap = $('clientProposeAddRow');
-    if (oldWrap) oldWrap.remove();
-  }
+  const freeRow = $('freeExName') ? $('freeExName').closest('.free-add-row') : null;
+  if (freeRow) freeRow.style.display = 'none';
 
   const banner = $('dayLogLockBanner');
   if (banner) {
     const d = document.createElement('div');
     d.className = 'day-open-banner';
     d.style.cssText = 'display:flex;gap:0.6rem;align-items:center;flex-wrap:wrap;margin-top:0.4rem;';
-    if (editing) {
-      d.innerHTML = `✏️ Editing ${escapeHtml(formatDateReadable(parts[0], parts[1] - 1, parts[2]))} — your changes are saved as proposals and appear in the official log only after your trainer approves them.` +
-        `<button class="btn-secondary btn-small" id="clientEditDoneBtn">✔ Done editing</button>`;
-    } else {
-      d.innerHTML = `👁 Read-only view of your approved log.` +
-        `<button class="btn-request-edit btn-small" id="clientEditDayBtn">✏️ Edit exercises</button>`;
-    }
+    d.innerHTML = `👁 Read-only view of your approved log. Need a change? Ask your trainer.`;
     banner.appendChild(d);
-    const eb = $('clientEditDayBtn');
-    if (eb) eb.addEventListener('click', () => openClientDayLogEdit(dateStr));
-    const db = $('clientEditDoneBtn');
-    if (db) db.addEventListener('click', () => cancelClientDayLogEdit(dateStr));
   }
 };
 
@@ -435,10 +398,7 @@ window.renderClientUpcoming = function (c) {
         : (isToday ? '<span class="history-pill today">🔥 Today</span>' : '<span class="history-pill open">⏳ Pending</span>');
       const pendEdits = typeof getPendingLogEditsFor === 'function'
         ? getPendingLogEditsFor(c.id, it.dateStr) : [];
-      // NEW FLOW: no 📨 "request a change" button. The client edits their
-      // exercises directly (staged proposals, applied on trainer approval).
-      // Times stay trainer-controlled.
-      let actionBtn = `<button class="btn-request-edit btn-small client-edit-btn" data-date="${it.dateStr}" title="Edit your exercises for this day — changes need trainer approval">✏️ Edit</button>`;
+      let actionBtn = '';
       if (pendEdits.length > 0) actionBtn += `<span class="lock-status-chip">🕓 ${pendEdits.length} pending</span>`;
       html += `<div class="client-upcoming-item ${it.done ? 'done' : 'open'}" data-date="${it.dateStr}">
         <span class="client-upcoming-icon">${it.done ? '✅' : '📅'}</span>
@@ -456,8 +416,6 @@ window.renderClientUpcoming = function (c) {
   container.innerHTML = html;
   container.querySelectorAll('.client-upcoming-open').forEach(btn =>
     btn.addEventListener('click', (e) => { e.stopPropagation(); openClientDayLog(btn.dataset.date); }));
-  container.querySelectorAll('.client-edit-btn').forEach(btn =>
-    btn.addEventListener('click', (e) => { e.stopPropagation(); openClientDayLogEdit(btn.dataset.date); }));
   container.querySelectorAll('.client-upcoming-item[data-date]').forEach(item =>
     item.addEventListener('dblclick', () => openClientDayLog(item.dataset.date)));
 

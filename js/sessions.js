@@ -138,27 +138,17 @@ window.renderDayLogLockState = function (dateStr) {
   const checked = isSessionCheckedForDate(cid, dateStr);
 
   if (APP_STATE.loggedInClient) {
-    // Client portal: exercise-log edits are ALWAYS allowed but staged as
-    // proposals; the trainer controls times, cancellations and reschedules.
+    // Client portal: the workout log is read-only — the trainer maintains it.
+    // Clients request changes via chat / in person.
     if (toggle) toggle.style.display = 'none';
     if (body) body.classList.add('hidden');
-    const pendEdits = typeof getPendingLogEditsFor === 'function'
-      ? getPendingLogEditsFor(cid, dateStr) : [];
     let html = '';
-    if (!editable && !checked) {
-      html += `<div class="day-open-banner">✏️ You can edit your exercises for this day — every change needs trainer approval before it appears in the official log.</div>`;
-    } else if (!editable) {
-      html += `<div class="day-lock-banner"><div class="day-lock-text"><strong>✅ Finished session — official log locked.</strong><br>You can still ✏️ edit your exercises; changes show as proposals and take effect only after your trainer approves them.</div></div>`;
+    if (!checked) {
+      html += `<div class="day-open-banner">👁 Read-only view of your approved log. Need a change? Ask your trainer.</div>`;
+    } else {
+      html += `<div class="day-lock-banner"><div class="day-lock-text"><strong>✅ Finished session — official log locked.</strong><br>Need a correction? Ask your trainer to update it.</div></div>`;
     }
-    if (pendEdits.length > 0) {
-      html += `<div style="margin-top:0.4rem;"><span class="lock-status-chip">🔎 ${pendEdits.length} exercise change${pendEdits.length > 1 ? 's' : ''} waiting for trainer approval</span></div>`;
-    }
-    html += `<div style="display:flex;gap:0.5rem;align-items:center;margin-top:0.5rem;flex-wrap:wrap;">` +
-      `<button class="btn-request-edit btn-small" id="clientEditFromLogBtn">✏️ Edit exercises</button>` +
-      '</div>';
     banner.innerHTML = html;
-    const ceb = $('clientEditFromLogBtn');
-    if (ceb) ceb.addEventListener('click', () => openClientDayLogEdit(dateStr));
     return;
   }
 
@@ -173,7 +163,7 @@ window.renderDayLogLockState = function (dateStr) {
   const actionHtml = `<label class="admin-unlock-toggle"><input type="checkbox" id="adminUnlockDayChk" ${editable ? 'checked' : ''}> 🔓 Unlock for editing</label>`;
   banner.innerHTML = `<div class="day-lock-banner">
       <div class="day-lock-text"><strong>🔒 Session finished — log is locked.</strong><br>
-      The client can propose changes with ✏️ Edit; approve them under ✅ Approvals → Workout edits.</div>
+      Use 🔓 Unlock below to make corrections, then lock it again.</div>
       ${actionHtml}
     </div>`;
   if (toggle) toggle.style.display = 'none';
@@ -181,203 +171,6 @@ window.renderDayLogLockState = function (dateStr) {
 
   const unlockChk = $('adminUnlockDayChk');
   if (unlockChk) unlockChk.addEventListener('change', () => adminToggleDayUnlock(dateStr, unlockChk.checked));
-};
-
-// ============================================================
-// CLIENT STAGED EDITS (propose now, apply on approval)
-// ------------------------------------------------------------
-// Clients edit their own workout log directly — but NOTHING is written
-// to `workout_logs` until the trainer/admin approves. Each change lives
-// as a row in `workout_edit_requests`:
-//   { client_id, session_date, status:'pending', proposed_action,
-//     entry_log_id, proposed_data }
-// The client's view merges these proposals on top of the approved logs
-// (marked 🕓 pending approval); the admin/trainer sees only the official
-// values until they hit ✅ Approve — at which point decideWorkoutEditRequest
-// applies the proposal to workout_logs.
-// ============================================================
-window.clientProposedEditsFor = function (clientId, dateStr) {
-  const map = {};
-  getPendingLogEditsFor(clientId, dateStr).forEach(r => {
-    if (!r.proposed_data) return;
-    if (r.entry_log_id != null && String(r.entry_log_id) !== '') map[String(r.entry_log_id)] = r;
-  });
-  return map;
-};
-
-window.openClientDayLogEdit = async function (dateStr) {
-  const c = APP_STATE.loggedInClient;
-  if (!c) return;
-  if (!APP_STATE.supabaseClient) { showToast('⏳ Still connecting to the cloud.', 'warning'); return; }
-  const ok = await uiConfirm({
-    title: '✏️ Edit your workout log',
-    message: 'You can change sets/reps/weight/rest or add exercises for this day. Your edits stay PROPOSALS — they appear in the official log only after your trainer or admin approves them.',
-    confirmText: '✏️ Start editing'
-  });
-  if (!ok) return;
-  APP_STATE.clientEditingDay = dateStr;
-  openClientDayLog(dateStr);
-};
-
-window.cancelClientDayLogEdit = function (dateStr) {
-  APP_STATE.clientEditingDay = null;
-  openClientDayLog(dateStr);
-};
-
-window.withdrawLogEditProposal = async function (reqId) {
-  const sb = APP_STATE.supabaseClient;
-  try {
-    if (sb && reqId && !String(reqId).startsWith('local-')) {
-      const { error } = await sb.from('workout_edit_requests')
-        .update({ status: 'withdrawn', decided_at: new Date().toISOString() }).eq('id', reqId);
-      if (error) throw error;
-    }
-  } catch (err) { console.warn('withdraw failed:', err); }
-  APP_STATE.workoutEditRequests = (APP_STATE.workoutEditRequests || [])
-    .filter(r => String(r.id) !== String(reqId));
-  showToast('↩︎ Proposal withdrawn.', 'info', 2500);
-  refreshAfterClientEdit();
-};
-
-async function upsertStagedEdit(payload, matchFn) {
-  const sb = APP_STATE.supabaseClient;
-  const list = APP_STATE.workoutEditRequests = (APP_STATE.workoutEditRequests || []);
-  const existing = list.find(matchFn);
-  if (existing && existing.id != null && String(existing.id) !== '' && !String(existing.id).startsWith('local-')) {
-    const { error } = await sb.from('workout_edit_requests')
-      .update({ proposed_data: payload.proposed_data, proposed_action: payload.proposed_action, requested_at: new Date().toISOString() })
-      .eq('id', existing.id);
-    if (error) throw error;
-    Object.assign(existing, payload, { id: existing.id });
-    return;
-  }
-  if (existing) list.splice(list.indexOf(existing), 1);
-  const { data: created, error } = await sb.from('workout_edit_requests')
-    .insert(payload).select().single();
-  if (error) throw error;
-  list.push(created || { ...payload, id: 'local-' + Date.now() });
-}
-
-window.saveClientLogFieldProposal = async function (logId, field, val) {
-  const c = APP_STATE.loggedInClient;
-  const dateStr = $('dayLogDate').value;
-  if (!c || !dateStr) return;
-  try {
-    await upsertStagedEdit({
-      client_id: c.id, session_date: dateStr, status: 'pending',
-      proposed_action: 'edit', entry_log_id: logId,
-      proposed_data: { [field]: val === '' ? null : val },
-      requested_at: new Date().toISOString()
-    }, r => sameId(r.client_id, c.id) && r.session_date === dateStr
-        && r.status === 'pending' && String(r.entry_log_id) === String(logId));
-    refreshAfterClientEdit();
-  } catch (err) {
-    if (window.isMissingTableError(err) || /proposed_data|entry_log_id|proposed_action/i.test(String(err.message || ''))) {
-      const healed = await window.handleMissingWerTable();
-      if (healed) { showToast('✅ Table fixed — change your value again.', 'success'); return; }
-    }
-    showToast('❌ Could not save proposal: ' + err.message, 'error');
-  }
-};
-
-window.addClientExerciseProposal = async function (nameArg) {
-  const c = APP_STATE.loggedInClient;
-  const dateStr = $('dayLogDate').value;
-  if (!c || !dateStr) return;
-  const name = String(nameArg || ($('clientProposeExName') || {}).value || ($('freeExName') || {}).value || '').trim();
-  if (!name) { showToast('Type an exercise name first.', 'warning'); return; }
-  try {
-    await upsertStagedEdit({
-      client_id: c.id, session_date: dateStr, status: 'pending',
-      proposed_action: 'add', entry_log_id: null,
-      proposed_data: { exercise_name: name, sets_done: null, reps_done: null, weight_done: null, rest_done: null, notes: null },
-      requested_at: new Date().toISOString()
-    }, r => sameId(r.client_id, c.id) && r.session_date === dateStr
-        && r.status === 'pending' && r.proposed_action === 'add'
-        && ((r.proposed_data || {}).exercise_name || '') === name);
-    if ($('clientProposeExName')) $('clientProposeExName').value = '';
-    showToast('➕ Exercise added as a proposal.', 'success', 2500);
-    refreshAfterClientEdit();
-  } catch (err) {
-    if (window.isMissingTableError(err) || /proposed_data|entry_log_id|proposed_action/i.test(String(err.message || ''))) {
-      const healed = await window.handleMissingWerTable();
-      if (healed) { showToast('✅ Table fixed — press Add again.', 'success'); return; }
-    }
-    showToast('❌ Could not save proposal: ' + err.message, 'error');
-  }
-};
-
-window.removeClientLogProposal = async function (logId) {
-  const c = APP_STATE.loggedInClient;
-  const dateStr = $('dayLogDate').value;
-  if (!c || !dateStr) return;
-  if (!await uiConfirm({ title: 'Remove exercise', message: 'Propose removing this exercise? It disappears from the official log only after your trainer approves.', confirmText: '🗑 Propose removal', danger: true })) return;
-  try {
-    await upsertStagedEdit({
-      client_id: c.id, session_date: dateStr, status: 'pending',
-      proposed_action: 'delete', entry_log_id: logId,
-      proposed_data: {}, requested_at: new Date().toISOString()
-    }, r => sameId(r.client_id, c.id) && r.session_date === dateStr
-        && r.status === 'pending' && String(r.entry_log_id) === String(logId));
-    showToast('🗑 Removal proposed.', 'success', 2500);
-    refreshAfterClientEdit();
-  } catch (err) {
-    if (window.isMissingTableError(err) || /proposed_data|entry_log_id|proposed_action/i.test(String(err.message || ''))) {
-      const healed = await window.handleMissingWerTable();
-      if (healed) { showToast('✅ Table fixed — press Remove again.', 'success'); return; }
-    }
-    showToast('❌ Could not save proposal: ' + err.message, 'error');
-  }
-};
-
-window.refreshAfterClientEdit = function () {
-  const lc = APP_STATE.loggedInClient;
-  if (!lc) return;
-  const dateStr = $('dayLogDate') ? $('dayLogDate').value : null;
-  if (!$('dayLogModal').classList.contains('hidden') && dateStr) {
-    openClientDayLog(dateStr); // re-render merged view (keeps edit mode)
-  }
-  renderClientHistory(lc);
-  renderClientUpcoming(lc);
-  updateApprovalsBadge();
-  if (typeof renderApprovals === 'function') renderApprovals();
-};
-
-window.submitWorkoutEditRequest = async function (dateStr) {
-  const c = APP_STATE.loggedInClient;
-  if (!c) return;
-  if (!APP_STATE.supabaseClient) { showToast('⏳ Still connecting to the cloud.', 'warning'); return; }
-  const ok = await uiConfirm({
-    title: 'Request Edit Access',
-    message: 'Ask your trainer to unlock this finished session so you can correct the workout log?',
-    confirmText: '📨 Send request'
-  });
-  if (!ok) return;
-  try {
-    const payload = { client_id: c.id, session_date: dateStr, status: 'pending', requested_at: new Date().toISOString() };
-    let { error } = await APP_STATE.supabaseClient.from('workout_edit_requests').insert(payload);
-    if (error && /duplicate|already exists|unique/i.test(error.message || '')) {
-      // A row already exists (e.g. previously approved/rejected) — reopen it.
-      ({ error } = await APP_STATE.supabaseClient.from('workout_edit_requests')
-        .update({ status: 'pending', admin_unlocked: false, decided_at: null, requested_at: new Date().toISOString() })
-        .eq('client_id', c.id).eq('session_date', dateStr));
-    }
-    if (error) throw error;
-    APP_STATE.workoutEditRequests = (APP_STATE.workoutEditRequests || []).filter(r =>
-      !(sameId(r.client_id, c.id) && r.session_date === dateStr));
-    APP_STATE.workoutEditRequests.push({ client_id: c.id, session_date: dateStr, status: 'pending' });
-    showToast('📨 Request sent to your trainer.', 'success');
-    renderDayLogLockState(dateStr);
-    renderDayLogExisting(dateStr);
-    refreshClientPortalViews();
-  } catch (err) {
-    if (window.isMissingTableError(err)) {
-      showStatus($('dayLogStatus'), friendlySchemaErrorMessage(err), 'error');
-      await window.handleMissingWerTable();
-      return;
-    }
-    showStatus($('dayLogStatus'), '❌ Could not send request: ' + err.message, 'error');
-  }
 };
 
 window.adminToggleDayUnlock = async function (dateStr, unlocked) {
@@ -411,45 +204,28 @@ window.adminToggleDayUnlock = async function (dateStr, unlocked) {
 
 window.renderDayLogExisting = function (dateStr) {
   const cid = APP_STATE.loggedInClient ? APP_STATE.loggedInClient.id : APP_STATE.selectedClientId;
-  let logs = APP_STATE.workoutLogsCache[`${cid}-${dateStr}`] || [];
+  const logs = APP_STATE.workoutLogsCache[`${cid}-${dateStr}`] || [];
   const container = $('dayLogExisting');
-  // Clients are always read-only in the ADMIN sense — but in their own view
-  // they can ✏️ Edit: changes merge as 🕓 proposals until the trainer approves.
+  // Clients see a read-only view of their official log — the trainer maintains it.
   const isClient = !!APP_STATE.loggedInClient;
-  const clientEditing = isClient && APP_STATE.clientEditingDay === dateStr;
-  const proposedMap = isClient ? clientProposedEditsFor(cid, dateStr) : {};
-  const addProposals = isClient
-    ? getPendingLogEditsFor(cid, dateStr).filter(r => r.proposed_action === 'add' && r.proposed_data)
-    : [];
-  if (isClient) {
-    logs = logs
-      .filter(log => (proposedMap[String(log.id)] || {}).proposed_action !== 'delete')
-      .map(log => {
-        const pr = proposedMap[String(log.id)];
-        return (pr && pr.proposed_action === 'edit') ? { ...log, ...pr.proposed_data } : log;
-      });
-  }
-  const editable = isClient ? clientEditing : isDayLogEditable(cid, dateStr);
-  if (logs.length === 0 && addProposals.length === 0) {
+  const editable = !isClient && isDayLogEditable(cid, dateStr);
+  if (logs.length === 0) {
     container.innerHTML = `<div class="day-log-meta">No exercises logged for this day yet.</div>`;
     return;
   }
-  let html = `<div class="day-log-meta">🏋️ ${logs.length + addProposals.length} exercise${(logs.length + addProposals.length) > 1 ? 's' : ''} on this day${isClient ? (clientEditing ? ' · <span class="locked-tag">✏️ editing — changes need approval</span>' : ' · <span class="locked-tag">official values</span>') : (editable ? '' : ' · <span class="locked-tag">🔒 read-only</span>')}</div>`;
+  let html = `<div class="day-log-meta">🏋️ ${logs.length} exercise${logs.length > 1 ? 's' : ''} on this day${isClient ? ' · <span class="locked-tag">official values</span>' : (editable ? '' : ' · <span class="locked-tag">🔒 read-only</span>')}</div>`;
   logs.forEach(log => {
     const name = getWorkoutDisplayName(log);
     const lastMatch = getLastLogForExercise(cid, name, log.exercise_id || null, dateStr);
     const lastBanner = lastMatch ? `<div class="last-time-banner">${escapeHtml(formatLastTimeSummary(lastMatch))}</div>` : '';
     const fieldAttr = editable ? '' : 'disabled';
-    const pr = proposedMap[String(log.id)];
-    const pendingChip = (isClient && pr && pr.status === 'pending')
-      ? `<span class="lock-status-chip" style="font-size:0.65rem;">🕓 Pending approval <button class="btn-secondary btn-small withdraw-proposal-btn" data-req-id="${escapeHtml(String(pr.id))}" style="margin-left:0.3rem;padding:0.1rem 0.4rem;font-size:0.65rem;">↩︎ Withdraw</button></span>` : '';
     html += `<div class="exercise-entry ${editable ? '' : 'locked'}" data-log-id="${log.id}">
       <div class="exercise-entry-header">
         <div>
-          <div class="exercise-entry-name">${escapeHtml(name)} ${pendingChip}</div>
+          <div class="exercise-entry-name">${escapeHtml(name)}</div>
           ${log.exercise_name && !log.exercise_id ? `<div class="exercise-entry-meta">Custom entry</div>` : ''}
         </div>
-        ${editable ? `<button class="btn-danger-small btn-small remove-log-btn" data-log-id="${log.id}">${isClient ? '🗑' : '✖'}</button>` : '<span class="lock-mini">🔒</span>'}
+        ${editable ? `<button class="btn-danger-small btn-small remove-log-btn" data-log-id="${log.id}">✖</button>` : '<span class="lock-mini">🔒</span>'}
       </div>
       ${lastBanner}
       <div class="exercise-entry-fields">
@@ -461,37 +237,23 @@ window.renderDayLogExisting = function (dateStr) {
       <div class="exercise-notes-row"><input type="text" class="log-field" data-field="notes" value="${escapeHtml(log.notes || '')}" placeholder="Notes" ${fieldAttr}></div>
     </div>`;
   });
-  addProposals.forEach(p => {
-    html += `<div class="exercise-entry locked proposed-entry" style="border-style:dashed;">
-      <div class="exercise-entry-header">
-        <div><div class="exercise-entry-name">➕ ${escapeHtml((p.proposed_data || {}).exercise_name || 'New exercise')}
-          <span class="lock-status-chip" style="font-size:0.65rem;">🕓 Awaiting approval
-            <button class="btn-secondary btn-small withdraw-proposal-btn" data-req-id="${escapeHtml(String(p.id))}" style="margin-left:0.3rem;padding:0.1rem 0.4rem;font-size:0.65rem;">↩︎ Withdraw</button></span></div></div>
-      </div>
-    </div>`;
-  });
   container.innerHTML = html;
 
   document.querySelectorAll('.log-field').forEach(input => {
     input.addEventListener('change', async (e) => {
+      if (APP_STATE.loggedInClient) return; // clients: read-only
       const entry = e.target.closest('.exercise-entry');
-      if (APP_STATE.loggedInClient) {
-        await saveClientLogFieldProposal(entry.dataset.logId, e.target.dataset.field, e.target.value);
-      } else {
-        await saveWorkoutLogField(entry.dataset.logId, e.target.dataset.field, e.target.value);
-      }
+      await saveWorkoutLogField(entry.dataset.logId, e.target.dataset.field, e.target.value);
     });
   });
   document.querySelectorAll('.remove-log-btn').forEach(btn => {
     btn.addEventListener('click', async () => {
-      if (APP_STATE.loggedInClient) { await removeClientLogProposal(btn.dataset.logId); return; }
+      if (APP_STATE.loggedInClient) return; // clients: read-only
       if (!await uiConfirm({ title: 'Remove Exercise', message: 'Remove this exercise from the day log?', confirmText: '✖ Remove', danger: true })) return;
       await removeWorkoutLogById(btn.dataset.logId);
       openDayLogModal(APP_STATE.selectedDay);
     });
   });
-  document.querySelectorAll('.withdraw-proposal-btn').forEach(btn =>
-    btn.addEventListener('click', (e) => { e.stopPropagation(); withdrawLogEditProposal(btn.dataset.reqId); }));
 };
 
 window.renderDayLogChips = function () {
