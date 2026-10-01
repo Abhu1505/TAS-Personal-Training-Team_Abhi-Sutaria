@@ -77,8 +77,6 @@ input,select,textarea,button{font-family:inherit;}
 .login-card{position:relative;padding:1.5rem 1.5rem 1.4rem;border-top:5px solid var(--steel-600);transition:border-color 0.3s;}
 .login-card.admin-mode{border-top-color:var(--brand-700);}
 
-.theme-toggle{position:absolute;top:0.9rem;left:0.85rem;z-index:3;}
-
 /* ---- Admin contact block on the login card (email / Instagram / WhatsApp) ---- */
 .admin-contact{margin-top:1.1rem;padding-top:0.9rem;border-top:1px dashed var(--line);text-align:center;}
 .admin-contact-title{font-size:0.78rem;font-weight:700;color:var(--ink-soft, #5b6b7a);margin-bottom:0.55rem;letter-spacing:0.01em;}
@@ -101,12 +99,15 @@ input,select,textarea,button{font-family:inherit;}
    landscape). The only tweak kept is the SLIGHT upward nudge via
    margin-top inside the flex row. It is NOT absolutely positioned and
    never moves to the page's top-left corner. ---- */
-.login-brand-row{display:flex;align-items:center;gap:0.9rem;margin:0 0 1.15rem;padding-left:2.6rem;}
+/* The manual theme toggle button was removed (theme is 100% auto by
+   sunrise/sunset), so the brand row no longer needs left padding to make
+   room for it — the wordmark now starts flush with the card edge. */
+.login-brand-row{display:flex;align-items:center;gap:0.9rem;margin:0 0 1.15rem;padding-left:0;}
 /* wordmark/tagline column fills the remaining width so the photo hugs the right edge */
 .login-brand-text{flex:1 1 auto;display:flex;flex-direction:column;gap:0.4rem;min-width:0;}
-/* Photo: PRO compact square (was 138px — too tall on phones, pushed the form
-   below the fold). Clean rounded image with a subtle ring for a premium look. */
-.login-brand-row .logo-photo-wrap{width:128px;height:128px;display:flex;align-items:center;justify-content:center;overflow:hidden;border-radius:0;background:transparent;border:none;outline:none;flex:0 0 auto;margin-top:-1.1rem;box-shadow:none;}
+/* Photo: ENLARGED per request (was 128px → now 160px on desktop). Clean
+   square image with a subtle ring for a premium look. */
+.login-brand-row .logo-photo-wrap{width:160px;height:160px;display:flex;align-items:center;justify-content:center;overflow:hidden;border-radius:0;background:transparent;border:none;outline:none;flex:0 0 auto;margin-top:-1.1rem;box-shadow:none;}
 .login-brand-row .logo-photo-wrap img{width:100%;height:100%;object-fit:contain;display:block;border:none;border-radius:0;box-shadow:none;background:transparent;}
 .login-brand-text{display:flex;flex-direction:column;gap:0.4rem;min-width:0;}
 .login-brand-text .logo-lockup{width:min(236px,100%);height:auto;color:var(--brand-800);display:block;}
@@ -423,7 +424,6 @@ button:disabled{opacity:0.55;cursor:not-allowed;}
   body{padding:0.7rem 0.5rem;font-size:14px;}
   .card{padding:1.1rem;border-radius:var(--r-lg);}
   .login-card{padding:1.25rem 1.1rem 1.15rem;}
-  .theme-toggle{top:0.8rem;left:0.6rem;width:32px;height:32px;font-size:0.9rem;}
   h2{font-size:1.35rem;}
   .subhead{font-size:0.82rem;margin-bottom:1rem;}
   input,select,textarea{padding:0.7rem 0.9rem;font-size:0.9rem;min-height:44px;}
@@ -449,14 +449,13 @@ button:disabled{opacity:0.55;cursor:not-allowed;}
   .contact-picker-row .btn-contact{width:100%;}
   /* Compact brand header on phones — one slim row (wordmark left, photo
      right), form stays above the fold */
-  .login-brand-row{gap:0.65rem;margin-bottom:0.95rem;padding-left:2.2rem;}
-  .login-brand-row .logo-photo-wrap{width:104px;height:104px;border-radius:0;margin-top:-0.9rem;box-shadow:none;}
+  .login-brand-row{gap:0.65rem;margin-bottom:0.95rem;padding-left:0;}
+  .login-brand-row .logo-photo-wrap{width:128px;height:128px;border-radius:0;margin-top:-0.9rem;box-shadow:none;}
   .login-brand-row .logo-photo-wrap img{border-radius:0;}
   .login-brand-text .logo-lockup{width:min(200px,100%);}
   .login-brand-tag{font-size:0.66rem;}
   #bgWatermark img{width:130%;}
   .progress-photo-wrap{max-width:100%;height:320px;}
-  .theme-toggle{width:34px;height:34px;}
 }
 @media (max-width:400px){
   body{padding:0.5rem 0.4rem;}
@@ -465,8 +464,8 @@ button:disabled{opacity:0.55;cursor:not-allowed;}
   .exercise-entry-fields{grid-template-columns:1fr;}
   .progress-entry-grid{grid-template-columns:1fr;}
   /* Very narrow phones: centered slim strip — logo + wordmark only, form immediately below */
-  .login-brand-row{justify-content:center;flex-wrap:wrap;padding-left:2rem;margin-bottom:0.85rem;text-align:center;}
-  .login-brand-row .logo-photo-wrap{width:92px;height:92px;border-radius:0;margin-top:-0.6rem;box-shadow:none;}
+  .login-brand-row{justify-content:center;flex-wrap:wrap;padding-left:0;margin-bottom:0.85rem;text-align:center;}
+  .login-brand-row .logo-photo-wrap{width:112px;height:112px;border-radius:0;margin-top:-0.6rem;box-shadow:none;}
   .login-brand-row .logo-photo-wrap img{border-radius:0;}
   .login-brand-text{align-items:center;gap:0.3rem;}
   .login-brand-text .logo-lockup{width:min(190px,100%);}
@@ -516,8 +515,6 @@ button:disabled{opacity:0.55;cursor:not-allowed;}
 .app-footer-copy{font-size:0.7rem;color:var(--muted);}
 
 /* ---- Theme toggle button ---- */
-.theme-toggle{width:38px;height:38px;min-height:0;padding:0;border-radius:50%;background:var(--surface-tint);border:1.5px solid var(--line);font-size:1rem;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer;}
-.theme-toggle:hover{border-color:var(--brand-300);background:var(--brand-50);}
 
 /* ---- Login card polish ---- */
 .login-card:focus-within{box-shadow:var(--shadow-xl);}
@@ -590,7 +587,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,a:focus-visible,[t
 [data-theme="dark"] #bgWatermark img{opacity:0.05;filter:grayscale(60%) brightness(1.6);}
 [data-theme="dark"] .tab-btn.active{background:var(--surface-tint);}
 [data-theme="dark"] ::-webkit-scrollbar-thumb{background:#3a556c;}
-[data-theme="dark"] .btn-secondary,[data-theme="dark"] .theme-toggle{background:var(--surface-tint);color:var(--ink);}
+[data-theme="dark"] .btn-secondary{background:var(--surface-tint);color:var(--ink);}
 [data-theme="dark"] .copyable:hover{background:var(--brand-100);box-shadow:0 0 0 3px var(--brand-100);}
 [data-theme="dark"] .ui-confirm-message{background:var(--surface-tint);border-color:var(--line);}
 [data-theme="dark"] .closed-client-banner,[data-theme="dark"] .danger-panel{background:var(--danger-bg);}
@@ -612,8 +609,6 @@ button:focus-visible,input:focus-visible,select:focus-visible,a:focus-visible,[t
    ============================================================ */
 
 /* ---- Theme toggle: auto (sunrise/sunset) indicator ---- */
-.theme-toggle.theme-auto-badge{border-color:var(--warning-border);background:var(--warning-bg);}
-.theme-toggle.theme-auto-badge:hover{filter:brightness(1.05);}
 
 /* ---- Smooth cross-fade when the sun engine flips the theme ---- */
 html.theme-anim body{transition:background .6s var(--ease);}
@@ -1131,7 +1126,7 @@ textarea:focus-visible,.copyable:focus-visible,summary:focus-visible,
 @media print{
   @page{margin:14mm;}
   html,body{background:#fff !important;color:#000 !important;font-size:11pt;overflow:visible !important;}
-  #bgWatermark,.theme-toggle,#themeToggleBtn,#loginCard,.app-footer,#toastContainer,
+  #bgWatermark,#loginCard,.app-footer,#toastContainer,
   #updateSitePopup,.modal-overlay,.btn-primary,.btn-secondary,.btn-small,.btn-admin,
   button,input,select,textarea,.howto-card,.client-upcoming-hint,.status-msg,
   .cloud-status,.pwa-install-btn,.no-print{display:none !important;}
@@ -1208,7 +1203,7 @@ img{max-width:100%;}
 @media (max-height:460px) and (orientation:landscape){
   body{padding-top:calc(0.4rem + var(--safe-t));}
   .login-brand-row{margin-bottom:0.55rem;}
-  .login-brand-row .logo-photo-wrap{width:80px;height:80px;border-radius:0;margin-top:-0.45rem;box-shadow:none;}
+  .login-brand-row .logo-photo-wrap{width:96px;height:96px;border-radius:0;margin-top:-0.45rem;box-shadow:none;}
   .login-brand-row .logo-photo-wrap img{border-radius:0;}
   .login-card{padding:1rem 1.05rem !important;}
   .login-head{margin-bottom:0.7rem !important;}
