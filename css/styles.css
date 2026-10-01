@@ -688,7 +688,38 @@ html.theme-anim .stat-tile,html.theme-anim .settings-panel,html.theme-anim .remi
 
 /* Small-screen polish for the class-times module */
 @media (max-width:700px){
-  .classtimes-table{min-width:460px;}
+  /* Phone: drop the wide table entirely — each row becomes a compact card.
+     Column headers hide; every control gets its own on-card label instead,
+     so client names are always fully visible and readable. */
+  .classtimes-table{min-width:0;font-size:0.82rem;}
+  .classtimes-table thead{display:none;}
+  .classtimes-table, .classtimes-table tbody, .classtimes-table tr,
+  .classtimes-table td{display:block;width:100%;}
+  .classtimes-table tr.classtimes-row{
+    border:1px solid var(--line);border-radius:var(--r-md);
+    background:var(--surface);box-shadow:var(--shadow-sm);
+    padding:0.55rem 0.6rem;margin:0.5rem;
+  }
+  .classtimes-table td{border-bottom:none;padding:0.3rem 0;overflow-wrap:break-word;}
+  .classtimes-table td select,.classtimes-table td input{width:100%;min-width:0;}
+  /* Phone-safe sizing: >=16px prevents iOS auto-zoom on focus; >=44px tap targets */
+  .classtimes-row .ct-client{font-size:1rem;min-height:44px;}
+  .classtimes-row input[type="date"],.classtimes-row input[type="time"],.classtimes-row .ct-note input{
+    font-size:1rem;min-height:44px;padding:0.55rem 0.6rem;width:100%;}
+  .classtimes-row .ct-remove{min-height:44px;font-size:0.85rem;}
+  .classtimes-row .ct-client{white-space:normal;}
+  /* Inline labels (mirrors the th text) so each field is self-describing */
+  .classtimes-row td::before{
+    content:attr(data-label);display:block;
+    font-size:0.6rem;font-weight:800;text-transform:uppercase;
+    letter-spacing:0.4px;color:var(--muted);margin-bottom:0.2rem;
+  }
+  .classtimes-row td.ct-td-actions::before{content:none;}
+  .classtimes-row .ct-remove{width:100%;}
+  .classtimes-toolbar{flex-direction:column;align-items:stretch;}
+  .classtimes-toolbar .input-group{width:100%;}
+  .classtimes-count{margin-left:0;text-align:center;}
+  .classtimes-actions .btn-admin,.classtimes-actions .btn-secondary{flex:1 1 auto;}
 }
 
 /* ============================================================
