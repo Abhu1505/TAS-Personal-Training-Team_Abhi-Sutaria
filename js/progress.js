@@ -1,7 +1,12 @@
 window.renderProgressEntries = function (containerId, clientId, adminMode) {
   const entries = clientMapGet(APP_STATE.progressEntries, clientId) || [];
-  const pending = APP_STATE.progressApprovals
-    .filter(a => sameId(a.client_id, clientId) && a.status === 'pending' && a.action === 'add');
+  // Only GENUINE pending 'add' proposals show the ⏳ card — legacy rows that
+  // were already decided (or whose entry now exists officially) are filtered
+  // out by the shared true-pending function, killing false "Pending approval".
+  const pending = window.getClientPendingRows
+    ? window.getClientPendingRows(clientId).progressRows.filter(a => a.action === 'add')
+    : APP_STATE.progressApprovals
+      .filter(a => sameId(a.client_id, clientId) && a.status === 'pending' && a.action === 'add');
   const container = $(containerId);
   if (!container) return;
   if (entries.length === 0 && pending.length === 0) {
@@ -489,7 +494,8 @@ window.saveProgress = async function () {
       updateApprovalsBadge();
       if (APP_STATE.loggedInClient && sameId(APP_STATE.loggedInClient.id, clientId)) {
         renderClientProgress(APP_STATE.loggedInClient);
-        $('clientPendingBanner').classList.remove('hidden');
+        if (typeof window.syncClientPendingBanner === 'function') window.syncClientPendingBanner();
+        else $('clientPendingBanner').classList.remove('hidden');
       }
       showStatus($('progressModalStatus'), '✅ Submitted for admin approval!', 'success');
     } else {
@@ -537,7 +543,8 @@ window.submitProfileEdit = async function () {
     if (error) throw error;
     APP_STATE.profileApprovals.unshift(data);
     $('profileEditModal').classList.add('hidden');
-    $('clientPendingBanner').classList.remove('hidden');
+    if (typeof window.syncClientPendingBanner === 'function') window.syncClientPendingBanner();
+    else $('clientPendingBanner').classList.remove('hidden');
     updateApprovalsBadge();
     showStatus($('profileEditStatus'), '✅ Submitted for approval!', 'success');
   } catch (err) {

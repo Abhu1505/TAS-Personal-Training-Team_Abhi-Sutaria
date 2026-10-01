@@ -168,6 +168,98 @@ window.hasPendingLogEdits = function (clientId, dateStr) {
   return getPendingLogEditsFor(clientId, dateStr).length > 0;
 };
 
+// ============================================================
+// TRUE PENDING COUNTS — single source of truth for every
+// "⏳ Pending" badge / banner / stat across BOTH portals.
+// ------------------------------------------------------------
+// Legacy or ghost rows can carry status='pending' even though the
+// request was already decided (missing decided_at), belongs to a
+// deleted client, or duplicates an entry that now exists officially.
+// These stale rows used to light up the client banner and inflate
+// the admin badges with false "Pending approval" states. This
+// function filters them out so badges/banners only reflect genuine
+// pending requests. js/approvals.js, js/clients.js, js/auth.js,
+// js/progress.js, js/workspace.js and js/notifications.js all read
+// their counts from here.
+// ============================================================
+const _PENDING_STALE_MAX_MS = 21 * 24 * 60 * 60 * 1000; // 3 weeks
+
+function _isDecidedAlready(a) {
+  // A row that carries a decision timestamp / note / unlock flag but still
+  // says 'pending' is a legacy artifact of older approve/reject writes —
+  // treat it as decided, not pending.
+  return !!(a && (a.decided_at || a.admin_note || a.approved_at));
+}
+
+function _isGhostClientRow(a) {
+  const cid = a && a.client_id;
+  if (cid == null || cid === '') return true;
+  return !APP_STATE.clients.some(c => sameId(c.id, cid));
+}
+
+function _isStaleSubmitted(a) {
+  // Undecided but ancient rows are almost always leftovers from old wipes
+  // or abandoned sessions — they should never keep a badge lit forever.
+  const ts = Date.parse(a.submitted_at || a.requested_at || '');
+  if (!Number.isFinite(ts)) return false;
+  return Date.now() - ts > _PENDING_STALE_MAX_MS;
+}
+
+function _progressAlreadyOfficial(a) {
+  // An approved 'add' proposal whose entry now lives in progress_entries
+  // (same id, or same client + entry_date added by the client) must not be
+  // counted as pending anymore.
+  if (!a || a.action !== 'add') return false;
+  const list = clientMapGet(APP_STATE.progressEntries, a.client_id) || [];
+  const pd = a.proposed_data || {};
+  return list.some(e =>
+    (a.entry_id != null && sameId(e.id, a.entry_id)) ||
+    (pd.entry_date && e.entry_date === pd.entry_date && String(e.added_by || '') === 'client'));
+}
+
+window.getTruePendingCounts = function () {
+  const validClient = a => !_isGhostClientRow(a);
+  const genuine = a =>
+    a.status === 'pending' && !_isDecidedAlready(a) && validClient(a) && !_isStaleSubmitted(a);
+
+  const profile = (APP_STATE.profileApprovals || []).filter(genuine);
+  let progress = (APP_STATE.progressApprovals || []).filter(genuine);
+  progress = progress.filter(a => !_progressAlreadyOfficial(a));
+  const workout = (APP_STATE.workoutEditRequests || []).filter(r =>
+    r.status === 'pending' && !_isDecidedAlready(r) && !_isGhostClientRow(r) && !_isStaleSubmitted(r));
+
+  const perClient = {};
+  const bump = (row, kind) => {
+    const k = String(row.client_id);
+    if (!perClient[k]) perClient[k] = { profile: 0, progress: 0, workout: 0, total: 0 };
+    perClient[k][kind]++; perClient[k].total++;
+  };
+  profile.forEach(a => bump(a, 'profile'));
+  progress.forEach(a => bump(a, 'progress'));
+  workout.forEach(a => bump(a, 'workout'));
+
+  return {
+    profile, progress, workout,
+    profileCount: profile.length,
+    progressCount: progress.length,
+    workoutCount: workout.length,
+    total: profile.length + progress.length + workout.length,
+    perClient
+  };
+};
+
+// Genuine pending rows for ONE client (banner / roster badge / chips).
+window.getClientPendingRows = function (clientId) {
+  const p = window.getTruePendingCounts();
+  const e = p.perClient[String(clientId)] || { profile: 0, progress: 0, workout: 0, total: 0 };
+  return {
+    ...e,
+    profileRows: p.profile.filter(a => sameId(a.client_id, clientId)),
+    progressRows: p.progress.filter(a => sameId(a.client_id, clientId)),
+    workoutRows: p.workout.filter(a => sameId(a.client_id, clientId))
+  };
+};
+
 window.isDayLogEditable = function (clientId, dateStr) {
   if (!clientId || !dateStr) return true;
   const checked = (APP_STATE.sessionCache[getSessionCacheKey(clientId,

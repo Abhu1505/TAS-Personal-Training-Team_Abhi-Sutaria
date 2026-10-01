@@ -68,9 +68,20 @@ window.openClientDashboard = function (c) {
   clearStatus($('unifiedStatus'));
   renderClientDashboard(c);
 
-  const hasPendingProfile = APP_STATE.profileApprovals.some(a => sameId(a.client_id, c.id) && a.status === 'pending');
-  const hasPendingProgress = APP_STATE.progressApprovals.some(a => sameId(a.client_id, c.id) && a.status === 'pending');
-  $('clientPendingBanner').classList.toggle('hidden', !(hasPendingProfile || hasPendingProgress));
+  // Banner only for GENUINE pending requests (shared true-pending filter) —
+  // legacy/stale rows can no longer trigger a false "Pending approval".
+  if (typeof window.syncClientPendingBanner === 'function') window.syncClientPendingBanner();
+  else {
+    const p = window.getTruePendingCounts ? window.getTruePendingCounts() : null;
+    const hasPending = p
+      ? (p.perClient[String(c.id)] || { total: 0 }).total > 0
+      : (APP_STATE.profileApprovals.some(a => sameId(a.client_id, c.id) && a.status === 'pending')
+        || APP_STATE.progressApprovals.some(a => sameId(a.client_id, c.id) && a.status === 'pending'));
+    $('clientPendingBanner').classList.toggle('hidden', !hasPending);
+  }
+  // Make the client-portal 🔔 Enable button functional + reflect permission.
+  if (typeof window.bindClientNotifyButton === 'function') window.bindClientNotifyButton();
+  if (typeof window.updateNotifyButton === 'function') window.updateNotifyButton();
 
   document.querySelectorAll('.tab-btn[data-ctab]').forEach(b =>
     b.classList.toggle('active', b.dataset.ctab === 'plan'));
