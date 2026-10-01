@@ -51,6 +51,9 @@
     };
     lazyBind('sendAllTopBtn', 'sendToAllClients');
     lazyBind('notifyBtn', 'requestNotifyPermission');
+    // 🔔 Client-portal bell — same handler, so "Enable" works for clients too
+    // and both buttons stay in sync with the browser permission state.
+    lazyBind('clientNotifyBtn', 'requestNotifyPermission');
     lazyBind('approvalsBtn', 'openApprovalsPanel');
     lazyBind('exerciseLibraryBtn', 'openLibraryPanel');
     lazyBind('openSettingsBtn', 'openSettingsPanel');

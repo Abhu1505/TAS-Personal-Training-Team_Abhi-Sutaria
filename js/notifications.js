@@ -127,9 +127,39 @@ window.fireAlertNotification = function (title, body, tag) {
   }
 };
 
-window.updateNotifyButton = function () {
-  const btn = $('notifyBtn'); if (!btn) return;
+// One shared permission handler for BOTH bell buttons — admin (notifyBtn)
+// and client (clientNotifyBtn). Clicking "🔔 Enable" requests the browser
+// notification permission; granting it immediately syncs the state across
+// both portals so the two buttons never disagree.
+window.requestNotifyPermission = async function () {
+  if (!('Notification' in window)) {
+    showStatus(null, '⚠️ Notifications are not supported on this browser.', 'warning');
+    updateNotifyButtons();
+    return;
+  }
+  let perm = Notification.permission;
+  if (perm !== 'granted') {
+    try { perm = await Notification.requestPermission(); }
+    catch (e) { perm = Notification.permission; }
+  }
+  if (perm === 'granted') {
+    APP_STATE.notificationsEnabled = true;
+    try { new Notification('🔔 Notifications enabled', { body: 'You will be alerted of every new update.', icon: 'icons/icon-192.png' }); } catch (e) {}
+    try { playNotificationBeep(); } catch (e) {}
+    if (typeof showToast === 'function') showToast('🔔 Notifications are ON — you will hear an alert for every update.', 'success', 3500);
+  } else if (perm === 'denied') {
+    APP_STATE.notificationsEnabled = false;
+    if (typeof showToast === 'function') showToast('🔕 Notifications blocked by the browser. Enable them in your site settings.', 'warning', 4500);
+  }
+  // Redraw EVERY notify button (admin + client) so state stays in sync.
+  updateNotifyButtons();
+};
+
+// Paint a single button from the live Notification.permission state.
+function paintNotifyButton(btn) {
+  if (!btn) return;
   if (!('Notification' in window)) { btn.textContent = '🔔 N/A'; btn.disabled = true; return; }
+  btn.disabled = false;
   if (Notification.permission === 'granted') {
     btn.innerHTML = '🔔 On';
     btn.classList.add('enabled');
@@ -141,28 +171,40 @@ window.updateNotifyButton = function () {
   } else {
     btn.innerHTML = '🔔 Enable';
     btn.classList.remove('enabled');
-    APP_STATE.notificationsEnabled = false;
+    if (!APP_STATE.loggedInClient) APP_STATE.notificationsEnabled = false;
   }
+}
+
+window.updateNotifyButton = function () {
+  paintNotifyButton($('notifyBtn'));
+  paintNotifyButton($('clientNotifyBtn'));
+  if (Notification && Notification.permission === 'granted') APP_STATE.notificationsEnabled = true;
   // Re-attach the unread badge if one is active after a re-render.
   try { updateAlertBadge(); } catch (e) {}
 };
 
-window.requestNotifyPermission = async function () {
-  if (!('Notification' in window)) { showStatus(null, '⚠️ Notifications are not supported on this browser.', 'warning'); return; }
-  const perm = await Notification.requestPermission();
-  if (perm === 'granted') {
-    APP_STATE.notificationsEnabled = true;
-    try { new Notification('🔔 Notifications enabled', { body: 'You will be alerted of every new update.', icon: 'icons/icon-192.png' }); } catch (e) {}
-    try { playNotificationBeep(); } catch (e) {}
-  }
-  updateNotifyButton();
+// Sync ALL notify buttons at once (admin ↔ client portals).
+window.updateNotifyButtons = window.updateNotifyButton;
+
+// Bind the client-portal bell too — previously only the admin button had a
+// click handler, so the client "Enable" button did nothing.
+window.bindClientNotifyButton = function () {
+  const cb = $('clientNotifyBtn');
+  if (!cb || cb.dataset.bound === '1') return;
+  cb.dataset.bound = '1';
+  cb.addEventListener('click', () => {
+    if (typeof window.requestNotifyPermission === 'function') window.requestNotifyPermission();
+  });
 };
 
 /* ---------- ADMIN side: approvals & edit requests ---------- */
+// Uses the SHARED getTruePendingCounts() so ghost / legacy / stale rows
+// can never inflate the alert count or fire false notifications.
 window.checkForNewApprovalsAndNotify = function () {
-  const totalPending = APP_STATE.profileApprovals.filter(a => a.status === 'pending').length
-    + APP_STATE.progressApprovals.filter(a => a.status === 'pending').length
-    + (APP_STATE.workoutEditRequests || []).filter(r => r.status === 'pending').length;
+  const totalPending = window.getTruePendingCounts ? window.getTruePendingCounts().total
+    : (APP_STATE.profileApprovals.filter(a => a.status === 'pending').length
+      + APP_STATE.progressApprovals.filter(a => a.status === 'pending').length
+      + (APP_STATE.workoutEditRequests || []).filter(r => r.status === 'pending').length);
   const last = APP_STATE.lastSeenApprovalCount;
   if (last > 0 && totalPending > last) {
     const diff = totalPending - last;
@@ -284,10 +326,11 @@ window.notifyFromRealtime = function () {
     // Count current pendings now (pre-reload); the post-reload call below
     // compares the new count against it and alerts if something arrived.
     try {
-      APP_STATE.lastSeenApprovalCount =
-        APP_STATE.profileApprovals.filter(a => a.status === 'pending').length +
-        APP_STATE.progressApprovals.filter(a => a.status === 'pending').length +
-        (APP_STATE.workoutEditRequests || []).filter(r => r.status === 'pending').length;
+      APP_STATE.lastSeenApprovalCount = window.getTruePendingCounts
+        ? window.getTruePendingCounts().total
+        : (APP_STATE.profileApprovals.filter(a => a.status === 'pending').length +
+           APP_STATE.progressApprovals.filter(a => a.status === 'pending').length +
+           (APP_STATE.workoutEditRequests || []).filter(r => r.status === 'pending').length);
     } catch (e) {}
   }
   // Re-check after the live reload has fetched the fresh rows.

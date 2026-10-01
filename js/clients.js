@@ -21,12 +21,16 @@ window.renderClientList = function () {
     return;
   }
   let html = '';
+  // True-pending lookup — the ⏳ chip only shows for genuine pending rows.
+  const trueCounts = window.getTruePendingCounts ? window.getTruePendingCounts() : null;
   filtered.forEach(c => {
     const rate = getRate(c.id);
     const s = clientMapGet(APP_STATE.clientSettings, c.id) || {};
     const isClosed = !c.active;
-    const hasPending = APP_STATE.profileApprovals.some(a => sameId(a.client_id, c.id) && a.status === 'pending')
-                    || APP_STATE.progressApprovals.some(a => sameId(a.client_id, c.id) && a.status === 'pending');
+    const hasPending = trueCounts
+      ? (trueCounts.perClient[String(c.id)] || { total: 0 }).total > 0
+      : (APP_STATE.profileApprovals.some(a => sameId(a.client_id, c.id) && a.status === 'pending')
+        || APP_STATE.progressApprovals.some(a => sameId(a.client_id, c.id) && a.status === 'pending'));
     html += `<div class="client-item ${sameId(APP_STATE.selectedClientId, c.id) ? 'active-client' : ''} ${isClosed ? 'closed-client' : ''} ${hasPending ? 'has-pending' : ''}" data-client-id="${c.id}">
       <div class="client-info">
         <span class="client-name">${escapeHtml(c.name)}</span>

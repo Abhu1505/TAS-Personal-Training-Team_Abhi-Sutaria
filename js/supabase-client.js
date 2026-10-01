@@ -160,6 +160,10 @@ window.loadAllData = async function () {
   } catch (e) { APP_STATE.workoutEditRequests = []; }
 
   updateApprovalsBadge();
+  // Keep the client portal's "⏳ Pending approval" banner honest: it now
+  // re-evaluates from getTruePendingCounts() after every data load, so a
+  // stale/legacy row can never leave it falsely visible.
+  if (typeof window.syncClientPendingBanner === 'function') window.syncClientPendingBanner();
   // Render the client roster as soon as data is available — this way the list
   // shows up even before the user logs in, and never gets stuck on "Loading…".
   if (typeof renderClientList === 'function') renderClientList();

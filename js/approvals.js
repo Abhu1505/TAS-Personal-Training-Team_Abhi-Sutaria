@@ -283,10 +283,30 @@ window.decideWorkoutEditRequest = async function (id, clientId, dateStr, decisio
 
 
 window.updateApprovalsBadge = function () {
-  const pending = APP_STATE.profileApprovals.filter(a => a.status === 'pending').length
-    + APP_STATE.progressApprovals.filter(a => a.status === 'pending').length
-    + (APP_STATE.workoutEditRequests || []).filter(r => r.status === 'pending').length;
+  // SHARED true-pending filter — stale/legacy rows (already decided, ghost
+  // clients, or ancient leftovers) never light up this badge.
+  const pending = window.getTruePendingCounts ? window.getTruePendingCounts().total
+    : (APP_STATE.profileApprovals.filter(a => a.status === 'pending').length
+      + APP_STATE.progressApprovals.filter(a => a.status === 'pending').length
+      + (APP_STATE.workoutEditRequests || []).filter(r => r.status === 'pending').length);
   const badge = $('approvalsCountBadge'); if (!badge) return;
   if (pending > 0) { badge.textContent = pending; badge.classList.remove('hidden'); }
   else badge.classList.add('hidden');
+};
+
+// Toggle the client-portal "⏳ Pending approval" banner from the TRUE
+// pending counts for the logged-in client (never from raw legacy rows).
+window.syncClientPendingBanner = function () {
+  const el = $('clientPendingBanner');
+  if (!el) return;
+  const c = APP_STATE.loggedInClient;
+  if (!c) { el.classList.add('hidden'); return; }
+  let show = false;
+  try {
+    show = window.getClientPendingRows
+      ? window.getClientPendingRows(c.id).total > 0
+      : (APP_STATE.profileApprovals.some(a => sameId(a.client_id, c.id) && a.status === 'pending')
+        || APP_STATE.progressApprovals.some(a => sameId(a.client_id, c.id) && a.status === 'pending'));
+  } catch (e) { show = false; }
+  el.classList.toggle('hidden', !show);
 };

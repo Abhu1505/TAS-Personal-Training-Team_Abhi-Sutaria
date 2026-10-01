@@ -82,10 +82,11 @@
     const active = APP_STATE.clients.filter(c => c.active);
     set('hsTotalClients', APP_STATE.clients.length);
     set('hsActiveClients', active.length);
-    const pendingApprovals = APP_STATE.profileApprovals.filter(a => a.status === 'pending').length
-      + APP_STATE.progressApprovals.filter(a => a.status === 'pending').length
-      + (APP_STATE.workoutEditRequests || []).filter(r => r.status === 'pending').length;
-    set('hsPendingApprovals', pendingApprovals);
+    const pend = window.getTruePendingCounts ? window.getTruePendingCounts().total
+      : (APP_STATE.profileApprovals.filter(a => a.status === 'pending').length
+        + APP_STATE.progressApprovals.filter(a => a.status === 'pending').length
+        + (APP_STATE.workoutEditRequests || []).filter(r => r.status === 'pending').length);
+    set('hsPendingApprovals', pend);
     let monthSessions = 0, revenue = 0;
     active.forEach(c => {
       const n = (typeof getSessions === 'function' ? getSessions(c.id, y, m).length : 0);
