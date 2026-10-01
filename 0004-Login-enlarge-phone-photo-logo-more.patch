@@ -1,0 +1,58 @@
+From 3634f7c76d4d2082841c405835e8215532309116 Mon Sep 17 00:00:00 2001
+From: "qwen.ai[bot]" <qwenlm-intl@service.alibaba.com>
+Date: Thu, 1 Oct 2026 15:16:10 +0000
+Subject: [PATCH] Login: enlarge photo logo further on phones (176/152/120px);
+ bump SW to v15
+
+---
+ css/styles.css | 6 +++---
+ sw.js          | 2 +-
+ 2 files changed, 4 insertions(+), 4 deletions(-)
+
+diff --git a/css/styles.css b/css/styles.css
+index be1cfb7..3f7f571 100644
+--- a/css/styles.css
++++ b/css/styles.css
+@@ -450,7 +450,7 @@ button:disabled{opacity:0.55;cursor:not-allowed;}
+   /* Compact brand header on phones — one slim row (wordmark left, photo
+      right), form stays above the fold */
+   .login-brand-row{gap:0.65rem;margin-bottom:0.95rem;padding-left:0;}
+-  .login-brand-row .logo-photo-wrap{width:128px;height:128px;border-radius:0;margin-top:-0.9rem;box-shadow:none;}
++  .login-brand-row .logo-photo-wrap{width:176px;height:176px;border-radius:0;margin-top:-1.1rem;box-shadow:none;}
+   .login-brand-row .logo-photo-wrap img{border-radius:0;}
+   .login-brand-text .logo-lockup{width:min(200px,100%);}
+   .login-brand-tag{font-size:0.66rem;}
+@@ -465,7 +465,7 @@ button:disabled{opacity:0.55;cursor:not-allowed;}
+   .progress-entry-grid{grid-template-columns:1fr;}
+   /* Very narrow phones: centered slim strip — logo + wordmark only, form immediately below */
+   .login-brand-row{justify-content:center;flex-wrap:wrap;padding-left:0;margin-bottom:0.85rem;text-align:center;}
+-  .login-brand-row .logo-photo-wrap{width:112px;height:112px;border-radius:0;margin-top:-0.6rem;box-shadow:none;}
++  .login-brand-row .logo-photo-wrap{width:152px;height:152px;border-radius:0;margin-top:-0.8rem;box-shadow:none;}
+   .login-brand-row .logo-photo-wrap img{border-radius:0;}
+   .login-brand-text{align-items:center;gap:0.3rem;}
+   .login-brand-text .logo-lockup{width:min(190px,100%);}
+@@ -1203,7 +1203,7 @@ img{max-width:100%;}
+ @media (max-height:460px) and (orientation:landscape){
+   body{padding-top:calc(0.4rem + var(--safe-t));}
+   .login-brand-row{margin-bottom:0.55rem;}
+-  .login-brand-row .logo-photo-wrap{width:96px;height:96px;border-radius:0;margin-top:-0.45rem;box-shadow:none;}
++  .login-brand-row .logo-photo-wrap{width:120px;height:120px;border-radius:0;margin-top:-0.5rem;box-shadow:none;}
+   .login-brand-row .logo-photo-wrap img{border-radius:0;}
+   .login-card{padding:1rem 1.05rem !important;}
+   .login-head{margin-bottom:0.7rem !important;}
+diff --git a/sw.js b/sw.js
+index 52ca7ae..00a4532 100644
+--- a/sw.js
++++ b/sw.js
+@@ -14,7 +14,7 @@
+    ============================================================ */
+ 'use strict';
+ 
+-const VERSION = 'tas-pwa-v14';
++const VERSION = 'tas-pwa-v15';
+ const SHELL_CACHE   = VERSION + '-shell';
+ const RUNTIME_CACHE = VERSION + '-runtime';
+ 
+-- 
+2.39.5
+
