@@ -91,16 +91,19 @@ input,select,textarea,button{font-family:inherit;}
 [data-theme="dark"] .btn-contact-email,[data-theme="dark"] .btn-contact-instagram,[data-theme="dark"] .btn-contact-whatsapp{color:#fff;}
 @media (max-width:480px){.admin-contact-row a{white-space:normal;flex:1 1 auto;}}
 /* Login brand row (compact header inside the card).
-   Photo on the LEFT — slightly raised for a premium feel — wordmark +
-   tagline stacked on the RIGHT. One tidy row instead of the old tall
+   Wordmark + tagline on the LEFT, photo on the RIGHT (its original spot) —
+   slightly raised for a premium feel. One tidy row instead of a tall
    corner block, so the login form sits high on the screen and is fully
    visible on phones without scrolling up past the logo. */
-/* ---- Brand photo in the login brand row: SAME place & size as before
-   (left column of .login-brand-row, 92px on desktop). The only change the
-   owner asked for is a SLIGHT upward nudge — done purely with margin-top
-   inside the flex row. It is NOT absolutely positioned and never moves to
-   the page's top-left corner. ---- */
-.login-brand-row{display:flex;align-items:center;gap:0.9rem;margin:0 0 1.15rem;padding-right:2.6rem;}
+/* ---- Brand photo in the login brand row: back in its ORIGINAL place —
+   the RIGHT-hand side of the row (wordmark + tagline on the left), same
+   size as before (92px desktop / 74px phone / 64px narrow / 56px
+   landscape). The only tweak kept is the SLIGHT upward nudge via
+   margin-top inside the flex row. It is NOT absolutely positioned and
+   never moves to the page's top-left corner. ---- */
+.login-brand-row{display:flex;align-items:center;gap:0.9rem;margin:0 0 1.15rem;padding-left:2.6rem;}
+/* wordmark/tagline column fills the remaining width so the photo hugs the right edge */
+.login-brand-text{flex:1 1 auto;display:flex;flex-direction:column;gap:0.4rem;min-width:0;}
 /* Photo: PRO compact square (was 138px — too tall on phones, pushed the form
    below the fold). Clean rounded image with a subtle ring for a premium look. */
 .login-brand-row .logo-photo-wrap{width:92px;height:92px;display:flex;align-items:center;justify-content:center;overflow:hidden;border-radius:0.9rem;background:transparent;border:none;flex:0 0 auto;margin-top:-1.1rem;box-shadow:0 10px 24px -10px rgba(20,45,70,.35),0 0 0 3px rgba(43,110,158,.10);}
@@ -383,6 +386,21 @@ button:disabled{opacity:0.55;cursor:not-allowed;}
 .modal-overlay{position:fixed;inset:0;background:rgba(8,20,30,0.55);display:flex;align-items:center;justify-content:center;z-index:9999;padding:0.8rem;backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px);overflow-y:auto;}
 .modal-overlay.hidden{display:none !important;}
 .modal-box{background:var(--surface);border-radius:var(--r-xl);max-width:640px;width:100%;max-height:94vh;overflow-y:auto;box-shadow:var(--shadow-xl);}
+/* ---- Legal modals (Privacy Policy / Terms of Use) ----
+   The .legal-body / .modal-subhead classes are used ONLY by these two
+   popups. On phones the overlay switches to align-items:flex-start and
+   the box previously had max-height:none — a long legal text made the
+   popup stretch far beyond the screen, so it looked like it was "going
+   upward" and the bottom (Close button) was unreachable. These rules
+   keep the popup fully inside the viewport on any phone size, with the
+   text scrolling inside the card instead. */
+#privacyModal .modal-box,#termsModal .modal-box{padding:1.35rem 1.5rem;display:flex;flex-direction:column;gap:0.6rem;max-height:calc(88 * min(1dvh,1vh));}
+#privacyModal .modal-box h3,#termsModal .modal-box h3{font-size:1.2rem;font-weight:800;letter-spacing:-0.02em;margin:0;}
+#privacyModal .modal-actions,#termsModal .modal-actions{margin-top:auto;padding-top:0.7rem;}
+.modal-subhead{font-size:0.8rem;color:var(--muted);margin:0;}
+.legal-body{overflow-y:auto;-webkit-overflow-scrolling:touch;min-height:0;font-size:0.9rem;line-height:1.55;}
+.legal-body p{margin:0 0 0.7rem;}
+.legal-body a{color:var(--brand-600,var(--primary,#2b6e9e));font-weight:600;}
 .modal-header{padding:1.2rem 1.4rem;color:#fff;border-radius:var(--r-xl) var(--r-xl) 0 0;}
 .modal-header h3{font-size:1.15rem;font-weight:800;line-height:1.2;letter-spacing:-0.01em;}
 .modal-header p{font-size:0.82rem;margin-top:0.3rem;opacity:0.95;}
@@ -417,7 +435,10 @@ button:disabled{opacity:0.55;cursor:not-allowed;}
   .exercise-entry-fields{grid-template-columns:repeat(2,1fr);}
   .profile-grid{grid-template-columns:1fr;}
   .modal-overlay{padding:0.5rem;align-items:flex-start;padding-top:1rem;}
-  .modal-box{max-height:none;border-radius:var(--r-md);}
+  /* keep max-height on phones too (was max-height:none — caused the long
+     Privacy/Terms popups to overflow upward past the screen); the legal
+     text scrolls inside the card instead */
+  .modal-box{border-radius:var(--r-md);}
   .modal-header{padding:1rem 1.1rem;border-radius:var(--r-md) var(--r-md) 0 0;}
   .modal-body{padding:1rem 1.1rem;}
   .modal-actions button{flex:1 1 100%;}
@@ -426,8 +447,9 @@ button:disabled{opacity:0.55;cursor:not-allowed;}
   .free-add-row .btn-add-custom{flex:1 1 100%;}
   .contact-picker-row .input-group{flex:1 1 100%;}
   .contact-picker-row .btn-contact{width:100%;}
-  /* Compact brand header on phones — one slim row, form stays above the fold */
-  .login-brand-row{gap:0.65rem;margin-bottom:0.95rem;padding-right:2.2rem;}
+  /* Compact brand header on phones — one slim row (wordmark left, photo
+     right), form stays above the fold */
+  .login-brand-row{gap:0.65rem;margin-bottom:0.95rem;padding-left:2.2rem;}
   .login-brand-row .logo-photo-wrap{width:74px;height:74px;border-radius:0.75rem;margin-top:-0.9rem;box-shadow:0 8px 18px -8px rgba(20,45,70,.35),0 0 0 2.5px rgba(43,110,158,.10);}
   .login-brand-row .logo-photo-wrap img{border-radius:0.75rem;}
   .login-brand-text .logo-lockup{width:min(200px,100%);}
@@ -443,7 +465,7 @@ button:disabled{opacity:0.55;cursor:not-allowed;}
   .exercise-entry-fields{grid-template-columns:1fr;}
   .progress-entry-grid{grid-template-columns:1fr;}
   /* Very narrow phones: centered slim strip — logo + wordmark only, form immediately below */
-  .login-brand-row{justify-content:center;flex-wrap:wrap;padding-right:2rem;margin-bottom:0.85rem;text-align:center;}
+  .login-brand-row{justify-content:center;flex-wrap:wrap;padding-left:2rem;margin-bottom:0.85rem;text-align:center;}
   .login-brand-row .logo-photo-wrap{width:64px;height:64px;border-radius:0.7rem;margin-top:-0.6rem;}
   .login-brand-row .logo-photo-wrap img{border-radius:0.7rem;}
   .login-brand-text{align-items:center;gap:0.3rem;}
