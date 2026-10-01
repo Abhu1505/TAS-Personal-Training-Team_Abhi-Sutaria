@@ -601,7 +601,6 @@
     </div>
   </div><!-- /adminWorkspaceClients -->
   </div>
-</div>
 
 <!-- MODALS -->
 <div id="dayLogModal" class="modal-overlay hidden">
@@ -828,6 +827,8 @@
   </div>
 </div>
 
+</div><!-- /unified-wrap -->
+
 <!-- ===== Footer: professional compact layout (brand + nav columns + legal bar) ===== -->
 <footer class="app-footer">
   <div class="footer-top">
@@ -850,6 +851,7 @@
         <text x="78" y="50" font-family="Inter, Arial, sans-serif" font-weight="600" font-size="13" letter-spacing="0.2" fill="#143d2c" opacity="0.75">Personal Training</text>
       </svg></span>
       <p class="footer-tagline">Certified personal training in Dubai — customised plans, progress tracking and 1-on-1 coaching in one portal.</p>
+      <a class="footer-follow-link" href="https://www.instagram.com/teamabhisutaria?stkn=d2FoMmxiZ3A2eXhz" target="_blank" rel="noopener noreferrer">Follow @teamabhisutaria for daily workouts &amp; client results →</a>
       <div class="admin-contact footer-contact" id="footerAdminContact">
         <div class="admin-contact-title">Need help? Contact the admin</div>
         <div class="admin-contact-row">
@@ -973,10 +975,10 @@
   document.addEventListener('click', function (e) {
     var link = e.target.closest ? e.target.closest('.footer-nav a') : null;
     if (!link) return;
+    e.preventDefault(); // stop '#' links from jumping the page to the top on phones
     var modalId = link.getAttribute('data-open-modal');
-    if (modalId) { e.preventDefault(); openFooterTarget(modalId); return; }
+    if (modalId) { openFooterTarget(modalId); return; }
     if (link.hasAttribute('data-scroll')) {
-      e.preventDefault();
       var t = document.getElementById((link.getAttribute('href') || '').replace('#', ''));
       if (t) t.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
