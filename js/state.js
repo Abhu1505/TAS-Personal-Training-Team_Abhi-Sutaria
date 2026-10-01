@@ -18,9 +18,7 @@ window.APP_STATE = {
   dailyTimesCache: {},
   savedReports: [],            // progress_reports rows (cloud) or localStorage fallback
   profileApprovals: [],
-  workoutEditRequests: [],   // client requests to unlock a finished day for editing
-                             // + staged exercise-edit proposals (proposed_data)
-  clientEditingDay: null,    // ISO date the logged-in client is currently ✏️ editing
+  workoutEditRequests: [],   // trainer/admin unlock state for finished day logs
   selectedClientId: null,
   selectedClientForProgress: null,
   selectedMonth: new Date().getMonth(),
