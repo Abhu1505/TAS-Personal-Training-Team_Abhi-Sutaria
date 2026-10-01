@@ -93,25 +93,29 @@ input,select,textarea,button{font-family:inherit;}
    slightly raised for a premium feel. One tidy row instead of a tall
    corner block, so the login form sits high on the screen and is fully
    visible on phones without scrolling up past the logo. */
-/* ---- Brand photo in the login brand row: back in its ORIGINAL place —
-   the RIGHT-hand side of the row (wordmark + tagline on the left), same
-   size as before (92px desktop / 74px phone / 64px narrow / 56px
-   landscape). The only tweak kept is the SLIGHT upward nudge via
-   margin-top inside the flex row. It is NOT absolutely positioned and
-   never moves to the page's top-left corner. ---- */
+/* ---- Brand photo in the login brand row: now FIRST in the row — i.e. it
+   sits IN FRONT OF the text (left side), with the "TAS / Personal Training"
+   wordmark, the "Coaching portal · Dubai, UAE" tagline and the "🔐 access"
+   badge stacked in the text column after it. The photo is ENLARGED again
+   (was 160px → now 200px desktop / 190px phone / 168px narrow / 130px
+   landscape) and vertically centred against that taller text block, so no
+   upward margin nudge is needed any more. It is still a plain flex child —
+   never absolutely positioned, never moved to a page corner. ---- */
 /* The manual theme toggle button was removed (theme is 100% auto by
-   sunrise/sunset), so the brand row no longer needs left padding to make
-   room for it — the wordmark now starts flush with the card edge. */
-.login-brand-row{display:flex;align-items:center;gap:0.9rem;margin:0 0 1.15rem;padding-left:0;}
-/* wordmark/tagline column fills the remaining width so the photo hugs the right edge */
+   sunrise/sunset), so the brand row needs no left padding — the photo
+   starts flush with the card edge. */
+.login-brand-row{display:flex;align-items:center;gap:1rem;margin:0 0 1.15rem;padding-left:0;}
+/* text column (wordmark + tagline + badge) fills the remaining width to the right of the photo */
 .login-brand-text{flex:1 1 auto;display:flex;flex-direction:column;gap:0.4rem;min-width:0;}
-/* Photo: ENLARGED per request (was 128px → now 160px on desktop). Clean
-   square image with a subtle ring for a premium look. */
-.login-brand-row .logo-photo-wrap{width:160px;height:160px;display:flex;align-items:center;justify-content:center;overflow:hidden;border-radius:0;background:transparent;border:none;outline:none;flex:0 0 auto;margin-top:-1.1rem;box-shadow:none;}
+/* Photo: ENLARGED per request (was 160px → now 200px on desktop), placed
+   BEFORE the text so the logo leads the lockup. Clean square image. */
+.login-brand-row .logo-photo-wrap{width:200px;height:200px;display:flex;align-items:center;justify-content:center;overflow:hidden;border-radius:0;background:transparent;border:none;outline:none;flex:0 0 auto;margin-top:0;box-shadow:none;}
 .login-brand-row .logo-photo-wrap img{width:100%;height:100%;object-fit:contain;display:block;border:none;border-radius:0;box-shadow:none;background:transparent;}
-.login-brand-text{display:flex;flex-direction:column;gap:0.4rem;min-width:0;}
 .login-brand-text .logo-lockup{width:min(236px,100%);height:auto;color:var(--brand-800);display:block;}
 .login-brand-tag{font-size:0.72rem;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;color:var(--muted);}
+/* the 🔐 access badge now lives inside this text column — reset its old
+   block spacing so it reads as the last line of the lockup */
+.login-brand-text .badge{margin-bottom:0;width:fit-content;}
 .login-brand-row .gdrive-fallback{min-height:60px !important;font-size:0.7rem;}
 
 h2{font-size:clamp(1.4rem,3.5vw,1.85rem);font-weight:800;margin-bottom:0.3rem;color:var(--ink);line-height:1.2;letter-spacing:-0.02em;}
@@ -447,10 +451,10 @@ button:disabled{opacity:0.55;cursor:not-allowed;}
   .free-add-row .btn-add-custom{flex:1 1 100%;}
   .contact-picker-row .input-group{flex:1 1 100%;}
   .contact-picker-row .btn-contact{width:100%;}
-  /* Compact brand header on phones — one slim row (wordmark left, photo
-     right), form stays above the fold */
-  .login-brand-row{gap:0.65rem;margin-bottom:0.95rem;padding-left:0;}
-  .login-brand-row .logo-photo-wrap{width:176px;height:176px;border-radius:0;margin-top:-1.1rem;box-shadow:none;}
+  /* Compact brand header on phones — one row (photo logo FIRST/left, then
+     wordmark + tagline + badge), enlarged photo, form stays above the fold */
+  .login-brand-row{gap:0.8rem;margin-bottom:0.95rem;padding-left:0;}
+  .login-brand-row .logo-photo-wrap{width:190px;height:190px;border-radius:0;margin-top:0;box-shadow:none;}
   .login-brand-row .logo-photo-wrap img{border-radius:0;}
   .login-brand-text .logo-lockup{width:min(200px,100%);}
   .login-brand-tag{font-size:0.66rem;}
@@ -463,12 +467,14 @@ button:disabled{opacity:0.55;cursor:not-allowed;}
   h2{font-size:1.2rem;}
   .exercise-entry-fields{grid-template-columns:1fr;}
   .progress-entry-grid{grid-template-columns:1fr;}
-  /* Very narrow phones: centered slim strip — logo + wordmark only, form immediately below */
-  .login-brand-row{justify-content:center;flex-wrap:wrap;padding-left:0;margin-bottom:0.85rem;text-align:center;}
-  .login-brand-row .logo-photo-wrap{width:152px;height:152px;border-radius:0;margin-top:-0.8rem;box-shadow:none;}
+  /* Very narrow phones: keep the photo FIRST (left) and the text block
+     beside it — shrink both a touch instead of stacking, so the logo still
+     leads the lockup and the form stays close to the top */
+  .login-brand-row{justify-content:flex-start;flex-wrap:nowrap;padding-left:0;margin-bottom:0.85rem;text-align:left;gap:0.6rem;}
+  .login-brand-row .logo-photo-wrap{width:140px;height:140px;border-radius:0;margin-top:0;box-shadow:none;flex-basis:140px;}
   .login-brand-row .logo-photo-wrap img{border-radius:0;}
-  .login-brand-text{align-items:center;gap:0.3rem;}
-  .login-brand-text .logo-lockup{width:min(190px,100%);}
+  .login-brand-text{align-items:flex-start;gap:0.3rem;flex:1 1 0;}
+  .login-brand-text .logo-lockup{width:min(170px,100%);}
 }
 /* ============================================================
    PROFESSIONAL UPGRADE v2 — toasts, confirm dialog, search,
@@ -1203,7 +1209,7 @@ img{max-width:100%;}
 @media (max-height:460px) and (orientation:landscape){
   body{padding-top:calc(0.4rem + var(--safe-t));}
   .login-brand-row{margin-bottom:0.55rem;}
-  .login-brand-row .logo-photo-wrap{width:120px;height:120px;border-radius:0;margin-top:-0.5rem;box-shadow:none;}
+  .login-brand-row .logo-photo-wrap{width:130px;height:130px;border-radius:0;margin-top:0;box-shadow:none;}
   .login-brand-row .logo-photo-wrap img{border-radius:0;}
   .login-card{padding:1rem 1.05rem !important;}
   .login-head{margin-bottom:0.7rem !important;}
