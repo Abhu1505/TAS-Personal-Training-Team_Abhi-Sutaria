@@ -95,6 +95,11 @@ input,select,textarea,button{font-family:inherit;}
    tagline stacked on the RIGHT. One tidy row instead of the old tall
    corner block, so the login form sits high on the screen and is fully
    visible on phones without scrolling up past the logo. */
+/* ---- Brand photo in the login brand row: SAME place & size as before
+   (left column of .login-brand-row, 92px on desktop). The only change the
+   owner asked for is a SLIGHT upward nudge — done purely with margin-top
+   inside the flex row. It is NOT absolutely positioned and never moves to
+   the page's top-left corner. ---- */
 .login-brand-row{display:flex;align-items:center;gap:0.9rem;margin:0 0 1.15rem;padding-right:2.6rem;}
 /* Photo: PRO compact square (was 138px — too tall on phones, pushed the form
    below the fold). Clean rounded image with a subtle ring for a premium look. */
