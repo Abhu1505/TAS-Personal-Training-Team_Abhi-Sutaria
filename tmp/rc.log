@@ -1,0 +1,127 @@
+127.0.0.1 - - [01/Oct/2026 07:18:28] "GET /index.html HTTP/1.1" 200 -
+127.0.0.1 - - [01/Oct/2026 07:18:28] "GET /css/styles.css HTTP/1.1" 200 -
+127.0.0.1 - - [01/Oct/2026 07:18:28] "GET /js/config.js HTTP/1.1" 200 -
+127.0.0.1 - - [01/Oct/2026 07:18:28] "GET /js/drive-images.js HTTP/1.1" 200 -
+127.0.0.1 - - [01/Oct/2026 07:18:28] "GET /js/utils.js HTTP/1.1" 200 -
+127.0.0.1 - - [01/Oct/2026 07:18:28] "GET /js/toast.js HTTP/1.1" 200 -
+127.0.0.1 - - [01/Oct/2026 07:18:28] "GET /js/state.js HTTP/1.1" 200 -
+127.0.0.1 - - [01/Oct/2026 07:18:28] "GET /js/exercise-library.js HTTP/1.1" 200 -
+127.0.0.1 - - [01/Oct/2026 07:18:28] "GET /js/supabase-client.js HTTP/1.1" 200 -
+127.0.0.1 - - [01/Oct/2026 07:18:28] "GET /js/realtime.js HTTP/1.1" 200 -
+127.0.0.1 - - [01/Oct/2026 07:18:28] "GET /js/report.js HTTP/1.1" 200 -
+127.0.0.1 - - [01/Oct/2026 07:18:28] "GET /js/contacts.js HTTP/1.1" 200 -
+127.0.0.1 - - [01/Oct/2026 07:18:28] "GET /js/auth.js HTTP/1.1" 200 -
+127.0.0.1 - - [01/Oct/2026 07:18:28] "GET /js/exercises.js HTTP/1.1" 200 -
+127.0.0.1 - - [01/Oct/2026 07:18:28] "GET /js/progress.js HTTP/1.1" 200 -
+127.0.0.1 - - [01/Oct/2026 07:18:28] "GET /js/sessions.js HTTP/1.1" 200 -
+127.0.0.1 - - [01/Oct/2026 07:18:28] "GET /js/class-times.js HTTP/1.1" 200 -
+127.0.0.1 - - [01/Oct/2026 07:18:28] "GET /js/approvals.js HTTP/1.1" 200 -
+127.0.0.1 - - [01/Oct/2026 07:18:28] "GET /js/notifications.js HTTP/1.1" 200 -
+127.0.0.1 - - [01/Oct/2026 07:18:28] "GET /js/reminders.js HTTP/1.1" 200 -
+127.0.0.1 - - [01/Oct/2026 07:18:28] "GET /js/clients.js HTTP/1.1" 200 -
+127.0.0.1 - - [01/Oct/2026 07:18:28] "GET /js/settings.js HTTP/1.1" 200 -
+127.0.0.1 - - [01/Oct/2026 07:18:28] "GET /js/reports.js HTTP/1.1" 200 -
+127.0.0.1 - - [01/Oct/2026 07:18:28] "GET /js/workspace.js HTTP/1.1" 200 -
+127.0.0.1 - - [01/Oct/2026 07:18:28] "GET /js/wipe.js HTTP/1.1" 200 -
+127.0.0.1 - - [01/Oct/2026 07:18:28] "GET /js/update-site.js HTTP/1.1" 200 -
+127.0.0.1 - - [01/Oct/2026 07:18:28] "GET /js/pwa.js HTTP/1.1" 200 -
+127.0.0.1 - - [01/Oct/2026 07:18:28] "GET /js/main.js HTTP/1.1" 200 -
+127.0.0.1 - - [01/Oct/2026 07:18:28] "GET /index.html?_up=1790839108748 HTTP/1.1" 200 -
+127.0.0.1 - - [01/Oct/2026 07:18:28] "GET /sw.js HTTP/1.1" 200 -
+127.0.0.1 - - [01/Oct/2026 07:18:28] "GET / HTTP/1.1" 200 -
+127.0.0.1 - - [01/Oct/2026 07:18:28] "GET /css/styles.css HTTP/1.1" 304 -
+127.0.0.1 - - [01/Oct/2026 07:18:28] "GET /manifest.webmanifest HTTP/1.1" 200 -
+127.0.0.1 - - [01/Oct/2026 07:18:28] "GET /icons/icon.svg HTTP/1.1" 200 -
+127.0.0.1 - - [01/Oct/2026 07:18:33] "GET /index.html HTTP/1.1" 200 -
+127.0.0.1 - - [01/Oct/2026 07:18:33] "GET /css/styles.css HTTP/1.1" 200 -
+127.0.0.1 - - [01/Oct/2026 07:18:33] "GET /js/config.js HTTP/1.1" 200 -
+127.0.0.1 - - [01/Oct/2026 07:18:33] "GET /js/drive-images.js HTTP/1.1" 200 -
+127.0.0.1 - - [01/Oct/2026 07:18:33] "GET /js/utils.js HTTP/1.1" 200 -
+127.0.0.1 - - [01/Oct/2026 07:18:33] "GET /js/toast.js HTTP/1.1" 200 -
+127.0.0.1 - - [01/Oct/2026 07:18:33] "GET /js/state.js HTTP/1.1" 200 -
+127.0.0.1 - - [01/Oct/2026 07:18:33] "GET /js/exercise-library.js HTTP/1.1" 200 -
+127.0.0.1 - - [01/Oct/2026 07:18:33] "GET /js/supabase-client.js HTTP/1.1" 200 -
+127.0.0.1 - - [01/Oct/2026 07:18:33] "GET /js/realtime.js HTTP/1.1" 200 -
+127.0.0.1 - - [01/Oct/2026 07:18:33] "GET /js/report.js HTTP/1.1" 200 -
+127.0.0.1 - - [01/Oct/2026 07:18:33] "GET /js/contacts.js HTTP/1.1" 200 -
+127.0.0.1 - - [01/Oct/2026 07:18:33] "GET /js/auth.js HTTP/1.1" 200 -
+127.0.0.1 - - [01/Oct/2026 07:18:33] "GET /js/sessions.js HTTP/1.1" 200 -
+127.0.0.1 - - [01/Oct/2026 07:18:33] "GET /js/exercises.js HTTP/1.1" 200 -
+127.0.0.1 - - [01/Oct/2026 07:18:33] "GET /js/progress.js HTTP/1.1" 200 -
+127.0.0.1 - - [01/Oct/2026 07:18:33] "GET /js/class-times.js HTTP/1.1" 200 -
+127.0.0.1 - - [01/Oct/2026 07:18:33] "GET /js/approvals.js HTTP/1.1" 200 -
+127.0.0.1 - - [01/Oct/2026 07:18:33] "GET /js/notifications.js HTTP/1.1" 200 -
+127.0.0.1 - - [01/Oct/2026 07:18:33] "GET /js/reminders.js HTTP/1.1" 200 -
+127.0.0.1 - - [01/Oct/2026 07:18:33] "GET /js/clients.js HTTP/1.1" 200 -
+127.0.0.1 - - [01/Oct/2026 07:18:33] "GET /js/settings.js HTTP/1.1" 200 -
+127.0.0.1 - - [01/Oct/2026 07:18:33] "GET /js/reports.js HTTP/1.1" 200 -
+127.0.0.1 - - [01/Oct/2026 07:18:33] "GET /js/workspace.js HTTP/1.1" 200 -
+127.0.0.1 - - [01/Oct/2026 07:18:33] "GET /js/wipe.js HTTP/1.1" 200 -
+127.0.0.1 - - [01/Oct/2026 07:18:33] "GET /js/update-site.js HTTP/1.1" 200 -
+127.0.0.1 - - [01/Oct/2026 07:18:33] "GET /js/pwa.js HTTP/1.1" 200 -
+127.0.0.1 - - [01/Oct/2026 07:18:33] "GET /js/main.js HTTP/1.1" 200 -
+127.0.0.1 - - [01/Oct/2026 07:18:33] "GET /index.html?_up=1790839113953 HTTP/1.1" 200 -
+127.0.0.1 - - [01/Oct/2026 07:18:34] "GET /sw.js HTTP/1.1" 200 -
+127.0.0.1 - - [01/Oct/2026 07:18:34] "GET / HTTP/1.1" 200 -
+127.0.0.1 - - [01/Oct/2026 07:18:34] "GET /css/styles.css HTTP/1.1" 304 -
+127.0.0.1 - - [01/Oct/2026 07:18:34] "GET /manifest.webmanifest HTTP/1.1" 200 -
+127.0.0.1 - - [01/Oct/2026 07:18:34] "GET /icons/icon.svg HTTP/1.1" 200 -
+127.0.0.1 - - [01/Oct/2026 07:18:37] "GET /index.html HTTP/1.1" 200 -
+127.0.0.1 - - [01/Oct/2026 07:18:37] "GET /css/styles.css HTTP/1.1" 200 -
+127.0.0.1 - - [01/Oct/2026 07:18:37] "GET /js/config.js HTTP/1.1" 200 -
+127.0.0.1 - - [01/Oct/2026 07:18:37] "GET /js/drive-images.js HTTP/1.1" 200 -
+127.0.0.1 - - [01/Oct/2026 07:18:37] "GET /js/utils.js HTTP/1.1" 200 -
+127.0.0.1 - - [01/Oct/2026 07:18:37] "GET /js/toast.js HTTP/1.1" 200 -
+127.0.0.1 - - [01/Oct/2026 07:18:37] "GET /js/state.js HTTP/1.1" 200 -
+127.0.0.1 - - [01/Oct/2026 07:18:37] "GET /js/supabase-client.js HTTP/1.1" 200 -
+127.0.0.1 - - [01/Oct/2026 07:18:37] "GET /js/exercise-library.js HTTP/1.1" 200 -
+127.0.0.1 - - [01/Oct/2026 07:18:37] "GET /js/realtime.js HTTP/1.1" 200 -
+127.0.0.1 - - [01/Oct/2026 07:18:37] "GET /js/report.js HTTP/1.1" 200 -
+127.0.0.1 - - [01/Oct/2026 07:18:37] "GET /js/auth.js HTTP/1.1" 200 -
+127.0.0.1 - - [01/Oct/2026 07:18:37] "GET /js/sessions.js HTTP/1.1" 200 -
+127.0.0.1 - - [01/Oct/2026 07:18:37] "GET /js/exercises.js HTTP/1.1" 200 -
+127.0.0.1 - - [01/Oct/2026 07:18:37] "GET /js/contacts.js HTTP/1.1" 200 -
+127.0.0.1 - - [01/Oct/2026 07:18:37] "GET /js/class-times.js HTTP/1.1" 200 -
+127.0.0.1 - - [01/Oct/2026 07:18:37] "GET /js/approvals.js HTTP/1.1" 200 -
+127.0.0.1 - - [01/Oct/2026 07:18:37] "GET /js/reminders.js HTTP/1.1" 200 -
+127.0.0.1 - - [01/Oct/2026 07:18:37] "GET /js/progress.js HTTP/1.1" 200 -
+127.0.0.1 - - [01/Oct/2026 07:18:37] "GET /js/notifications.js HTTP/1.1" 200 -
+127.0.0.1 - - [01/Oct/2026 07:18:37] "GET /js/clients.js HTTP/1.1" 200 -
+127.0.0.1 - - [01/Oct/2026 07:18:37] "GET /js/settings.js HTTP/1.1" 200 -
+127.0.0.1 - - [01/Oct/2026 07:18:37] "GET /js/reports.js HTTP/1.1" 200 -
+127.0.0.1 - - [01/Oct/2026 07:18:37] "GET /js/workspace.js HTTP/1.1" 200 -
+127.0.0.1 - - [01/Oct/2026 07:18:37] "GET /js/wipe.js HTTP/1.1" 200 -
+127.0.0.1 - - [01/Oct/2026 07:18:37] "GET /js/pwa.js HTTP/1.1" 200 -
+127.0.0.1 - - [01/Oct/2026 07:18:37] "GET /js/update-site.js HTTP/1.1" 200 -
+127.0.0.1 - - [01/Oct/2026 07:18:37] "GET /js/main.js HTTP/1.1" 200 -
+127.0.0.1 - - [01/Oct/2026 07:18:38] "GET /index.html?_up=1790839118000 HTTP/1.1" 200 -
+127.0.0.1 - - [01/Oct/2026 07:18:38] "GET /sw.js HTTP/1.1" 200 -
+127.0.0.1 - - [01/Oct/2026 07:18:38] "GET / HTTP/1.1" 200 -
+127.0.0.1 - - [01/Oct/2026 07:18:38] "GET /css/styles.css HTTP/1.1" 304 -
+127.0.0.1 - - [01/Oct/2026 07:18:38] "GET /manifest.webmanifest HTTP/1.1" 200 -
+127.0.0.1 - - [01/Oct/2026 07:18:38] "GET /icons/icon.svg HTTP/1.1" 200 -
+PASS no JS errors (mobile) []
+PASS install chip visible on iOS UA 
+PASS iOS install help popover ✕ | 📲 Add TAS Training to your home screen | Tap the Share button ⬆︎ in the Safa
+PASS popover closes 
+PASS no horizontal overflow (phone login) ovf=0
+PASS body font >=13px on phone 13.892px
+PASS input font >=15px (no iOS zoom) 16px
+PASS manifest orientation=any 
+PASS manifest display_override 
+PASS viewport-fit=cover 
+PASS client tabs fixed dock on phone {'pos': 'fixed', 'bottom': 667.6322021484375, 'vh': 844}
+FAIL dock sits at bottom {'pos': 'fixed', 'bottom': 667.6322021484375, 'vh': 844}
+PASS body leaves room for dock 73.6px
+PASS no horizontal overflow (client dash) ovf=0
+PASS dock tab switch works 
+PASS no JS errors (laptop) []
+PASS inline tabs on laptop (not fixed) static
+PASS wider page on laptop 760px
+PASS larger body font on laptop 15.68px
+PASS no horizontal overflow (laptop) ovf=0
+PASS no JS errors (small android) []
+PASS install chip visible android 
+PASS no horizontal overflow (320px) ovf=0
+
+22/23 passed
