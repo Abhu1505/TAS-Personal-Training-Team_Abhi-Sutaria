@@ -91,18 +91,18 @@ window.setCloudStatus = function (online) {
 /* ============================================================
    THEME ENGINE — automatic light/dark based on SUNRISE & SUNSET
    ------------------------------------------------------------
-   Modes stored in localStorage under 'tas_theme_mode':
-     'auto'   (default) → 🌙 dark between sunset and sunrise,
-                          ☀️ light between sunrise and sunset.
-     'light'  → manual override, always light.
-     'dark'   → manual override, always dark.
+   AUTO ONLY (by design): the manual Light/Dark toggle button was
+   removed because the theme should always follow the sun:
+     🌙 dark between sunset and sunrise,
+     ☀️ light between sunrise and sunset.
+   Any legacy 'tas_theme_mode' manual override saved by older
+   versions is cleared on load so it can never stick.
 
    Sunrise/sunset are computed locally with a NOAA solar-position
    algorithm (no external API needed) using the browser geolocation
    when available. If the user denies location, we fall back to a
-   sensible default: Dubai (25.2°N, 55.3°E), then system preference.
+   sensible default: Dubai (25.2°N, 55.3°E).
 
-   The toggle button cycles: auto → light → dark → auto.
    A timer re-checks every minute so the page flips exactly at the
    sun event without a reload.
    ============================================================ */
@@ -199,12 +199,13 @@ let _sunGeoRequested = false;
 let _sunGeo = { lat: 25.2, lon: 55.3 }; // fallback: Dubai (site locale)
 
 window.applyAutoTheme = async function () {
-  const mode = (() => { try { return localStorage.getItem('tas_theme_mode') || 'auto'; } catch (e) { return 'auto'; } })();
+  // AUTO ONLY: the manual Light/Dark toggle button was removed — the theme
+  // always follows the local sunrise & sunset. Any legacy 'tas_theme_mode'
+  // override saved by older versions is cleared so it can never stick.
+  try { localStorage.removeItem('tas_theme_mode'); } catch (e) {}
   let theme;
-  if (mode === 'light' || mode === 'dark') {
-    theme = mode; // manual override wins
-  } else {
-    if (mode === 'auto' && !_sunGeoRequested) {
+  {
+    if (!_sunGeoRequested) {
       _sunGeoRequested = true;
       const geo = await window.getCurrentLocation();
       if (geo) _sunGeo = geo;
@@ -221,45 +222,22 @@ window.applyAutoTheme = async function () {
   }
   // Enable the smooth cross-fade CSS (html.theme-anim) after first paint
   if (!_themeFirstApply) { _themeFirstApply = true; setTimeout(() => document.documentElement.classList.add('theme-anim'), 120); }
-  const btn = document.getElementById('themeToggleBtn');
-  if (btn) {
-    const label = mode === 'auto' ? 'Auto (sunrise/sunset)' : (mode === 'dark' ? 'Dark' : 'Light');
-    btn.textContent = mode === 'auto' ? '🌅' : (theme === 'dark' ? '☀️' : '🌙');
-    btn.title = `Theme: ${label} — click to change`;
-    btn.classList.toggle('theme-auto-badge', mode === 'auto');
-  }
   // Toast only when the auto engine actually flipped the theme
-  if (changed && prev && mode === 'auto' && typeof window.showToast === 'function') {
+  if (changed && prev && typeof window.showToast === 'function') {
     window.showToast(theme === 'dark' ? '🌙 Sunset — switched to dark mode' : '☀️ Sunrise — switched to light mode', 'info', 2500);
   }
   return theme;
 };
 
+/* initThemeToggle: kept as a name for backward compatibility (main.js calls
+   it on startup), but there is NO manual button any more — this simply starts
+   the automatic sunrise/sunset engine: apply now, re-check every minute so the
+   flip happens live at dawn/dusk, and re-check whenever the tab regains focus. */
 window.initThemeToggle = function () {
-  const btn = document.getElementById('themeToggleBtn');
   window.applyAutoTheme();
-  // Re-evaluate every minute so the flip happens at sunrise/sunset live.
   if (!_sunWatchTimer) _sunWatchTimer = setInterval(() => window.applyAutoTheme(), 60 * 1000);
-  // Also re-check the moment the tab becomes visible again (user returns at dusk).
   document.addEventListener('visibilitychange', () => {
     if (!document.hidden) window.applyAutoTheme();
-  });
-  if (!btn || btn.dataset.wired) return;
-  btn.dataset.wired = '1';
-  btn.addEventListener('click', () => {
-    let mode;
-    try { mode = localStorage.getItem('tas_theme_mode') || 'auto'; } catch (e) { mode = 'auto'; }
-    // Cycle: auto → light → dark → auto
-    const next = mode === 'auto' ? 'light' : mode === 'light' ? 'dark' : 'auto';
-    try { localStorage.setItem('tas_theme_mode', next); } catch (e) {}
-    _sunGeoRequested = next === 'auto' ? _sunGeoRequested : _sunGeoRequested; // keep geo warm
-    window.applyAutoTheme();
-    if (typeof window.showToast === 'function') {
-      const msg = next === 'auto' ? '🌅 Auto mode: theme follows your local sunrise & sunset'
-                : next === 'light' ? '☀️ Light mode locked'
-                : '🌙 Dark mode locked';
-      window.showToast(msg, 'info', 2000);
-    }
   });
 };
 

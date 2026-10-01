@@ -75,13 +75,16 @@
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <link rel="stylesheet" href="css/styles.css">
-<script>/* Pre-paint theme: honour manual override, else auto by local sunrise/sunset (Dubai fallback until geolocation resolves). */
+<script>/* Pre-paint theme: AUTO ONLY — always follows the local sunrise/sunset
+   (Dubai fallback until geolocation resolves). The manual Light/Dark toggle
+   button was removed, so any legacy 'tas_theme_mode' override stored in
+   localStorage from older versions is ignored and cleared here. */
 (function(){
   try{
-    var mode=localStorage.getItem('tas_theme_mode')||'auto';
+    // Clear any stale manual override from previous versions → force auto.
+    try{localStorage.removeItem('tas_theme_mode');}catch(e0){}
     var t;
-    if(mode==='light'||mode==='dark'){t=mode;}
-    else{
+    {
       // Inline mini NOAA sun calc so there is no flash-of-wrong-theme.
       var g=null;try{g=JSON.parse(localStorage.getItem('tas_geo')||'null');}catch(e2){}
       var lat=g?g.lat:25.2, lon=g?g.lon:55.3;
@@ -141,7 +144,10 @@
       <h2 id="modeTitle">Personal training</h2>
       <div class="subhead" id="modeSubhead">Log in with your Login ID and password</div>
     </div>
-    <button type="button" class="theme-toggle" id="themeToggleBtn" title="Theme: auto (follows sunrise & sunset) — click to switch Light / Dark" aria-label="Cycle theme: Auto, Light, Dark">🌙</button>
+    <!-- The manual Light/Dark toggle button was REMOVED on purpose:
+         the theme is fully automatic — it follows your local sunrise and
+         sunset (see the pre-paint script in <head> and applyAutoTheme() in
+         js/utils.js), so no manual control is needed. -->
     <div id="cloudStatus" class="cloud-status"><div class="dot"></div><span id="cloudStatusText">Checking...</span></div>
     <div class="input-group">
       <label for="loginIdInput">Login ID</label>
