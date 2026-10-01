@@ -127,8 +127,8 @@
          that follows carries everything else in reading order:
            • the "TAS / Personal Training" SVG wordmark
            • the "Coaching portal · Dubai, UAE" tagline
-           • the "🔐 access" badge (moved up here from the login head below)
-         Below the row sits the login heading + subhead, then the form.
+         Below the row sits the login heading — with the "🔐 access" badge
+         back beside it, slight above the form — then the subhead and the form.
          Hidden entirely when logged in (only #loginCard shows at a time), and
          wraps to a centred stack on narrow screens so the form stays above
          the fold. -->
@@ -139,11 +139,16 @@
       <div class="login-brand-text">
         <svg class="logo-lockup" viewBox="0 0 236 64" role="img" aria-label="TAS Personal Training"><use href="#tas-lockup"/></svg>
         <span class="login-brand-tag">Coaching portal · Dubai, UAE</span>
-        <span class="badge" id="modeBadge">🔐 access</span>
       </div>
     </div>
     <div class="login-head">
-      <h2 id="modeTitle">Personal training</h2>
+      <!-- "slight above": the 🔐 access badge moved back down to sit just
+           above the login form, next to the heading — right after the
+           brand row and before the cloud status / inputs. -->
+      <div class="login-head-top">
+        <h2 id="modeTitle">Personal training</h2>
+        <span class="badge" id="modeBadge">🔐 access</span>
+      </div>
       <div class="subhead" id="modeSubhead">Log in with your Login ID and password</div>
     </div>
     <!-- The manual Light/Dark toggle button was REMOVED on purpose:
