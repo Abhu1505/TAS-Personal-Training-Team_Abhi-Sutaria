@@ -49,7 +49,24 @@
   };
 })();
 
-/* ---------- in-app bell + tab-title badge ---------- */
+/* ---------- in-app bell + tab-title badge + PWA app-icon badge ---------- */
+// Real "dot on the installed app icon" via the Badging API (Chrome/Edge
+// desktop + Android PWAs). Falls back to the tab-title "(n)" badge.
+async function updateAppIconBadge(n) {
+  try {
+    if (!('serviceWorker' in navigator)) return;
+    const reg = await navigator.serviceWorker.getRegistration();
+    if (!reg) return;
+    if ('setAppBadge' in reg) {
+      if (n > 0) await reg.setAppBadge(n);
+      else await reg.clearAppBadge();
+    } else if ('BadgingManager' in window) {
+      // Future standard API name — support it if browsers ship it.
+      await new window.BadgingManager().set(n > 0 ? { label: String(n), content: n } : null);
+    }
+  } catch (e) { /* badging unsupported — tab title still shows the count */ }
+}
+
 window.updateAlertBadge = function () {
   const n = APP_STATE.unreadAlerts || 0;
   const b = $('notifyBtn');
@@ -75,6 +92,8 @@ window.updateAlertBadge = function () {
     const base = document.title.replace(/^\(\d+\+?\)\s*/, '');
     document.title = n > 0 ? `(${n}) ${base}` : base;
   } catch (e) {}
+  // Actual app-icon badge on installed PWAs (notification dot on the icon).
+  updateAppIconBadge(n);
 };
 
 window.clearAlertBadge = function () {
@@ -254,11 +273,32 @@ window.startNotificationPolling = function () {
 /* ---------- Realtime hook: instant alerts, not just 60s polls ---------- */
 // js/realtime.js calls scheduleLiveReload() on any table change; we also
 // piggy-back here so alerts fire within seconds when Realtime works.
+// IMPORTANT: this runs BEFORE loadAllData() finishes, so the caches still
+// hold pre-change data. We only keep the old snapshots here (so the diff
+// has something to compare against) and evaluate once fresh data lands.
 window.notifyFromRealtime = function () {
-  if (APP_STATE.loggedInClient) checkClientUpdatesAndNotify();
-  else if (typeof $ === 'function' && $('adminDashboard') && !$('adminDashboard').classList.contains('hidden')) {
-    checkForNewApprovalsAndNotify();
+  const c = APP_STATE.loggedInClient;
+  if (c) {
+    try { APP_STATE.clientSnapshot = clientSnapshot(c); } catch (e) {}
+  } else if (typeof $ === 'function' && $('adminDashboard') && !$('adminDashboard').classList.contains('hidden')) {
+    // Count current pendings now (pre-reload); the post-reload call below
+    // compares the new count against it and alerts if something arrived.
+    try {
+      APP_STATE.lastSeenApprovalCount =
+        APP_STATE.profileApprovals.filter(a => a.status === 'pending').length +
+        APP_STATE.progressApprovals.filter(a => a.status === 'pending').length +
+        (APP_STATE.workoutEditRequests || []).filter(r => r.status === 'pending').length;
+    } catch (e) {}
   }
+  // Re-check after the live reload has fetched the fresh rows.
+  setTimeout(() => {
+    try {
+      if (APP_STATE.loggedInClient) checkClientUpdatesAndNotify();
+      else if (typeof $ === 'function' && $('adminDashboard') && !$('adminDashboard').classList.contains('hidden')) {
+        checkForNewApprovalsAndNotify();
+      }
+    } catch (e) {}
+  }, 1800);
 };
 
 // Opening the dashboard area acknowledges the alerts (badge clears),
