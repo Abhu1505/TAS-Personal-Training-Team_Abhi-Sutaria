@@ -41,6 +41,7 @@ window.openAdminDashboard = function () {
   }
   try { sessionStorage.setItem('tas_trainer_session', '1'); } catch (e) {}
   transitionToCard($('adminDashboard'), ['loginCard', 'clientDashboard']);
+  try { if (typeof window.refreshFooterNav === 'function') window.refreshFooterNav('admin'); } catch (e) {}
   $('adminDisplayId').textContent = APP_STATE.adminConfig.admin_login_id;
   clearStatus($('unifiedStatus'));
   renderClientList();
@@ -64,6 +65,7 @@ window.openClientDashboard = function (c) {
     tasSaveSession({ role: 'client', clientId: String(c.id), loginId: c.login_id });
   }
   transitionToCard($('clientDashboard'), ['loginCard', 'adminDashboard']);
+  try { if (typeof window.refreshFooterNav === 'function') window.refreshFooterNav('client'); } catch (e) {}
   $('welcomeClientName').textContent = c.name;
   clearStatus($('unifiedStatus'));
   renderClientDashboard(c);
@@ -139,6 +141,7 @@ window.unifiedLogout = function () {
   // Forget this device — next open shows the login screen again.
   if (typeof tasClearSession === 'function') tasClearSession();
   transitionToCard($('loginCard'), ['clientDashboard', 'adminDashboard']);
+  try { if (typeof window.refreshFooterNav === 'function') window.refreshFooterNav(null); } catch (e) {}
   $('loginIdInput').value = '';
   $('passwordInput').value = '';
   clearStatus($('unifiedStatus'));

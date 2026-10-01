@@ -782,6 +782,47 @@
   </div>
 </div>
 
+<!-- ===== Footer modals: Privacy Policy / Terms of Use (open via footer links) ===== -->
+<div id="privacyModal" class="modal-overlay hidden">
+  <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="privacyModalTitle">
+    <h3 id="privacyModalTitle">🔒 Privacy Policy</h3>
+    <p class="modal-subhead">Last updated: October 2026 · Team Abhi Sutaria — Personal Training, Dubai, UAE</p>
+    <div class="legal-body">
+      <p><strong>What we collect.</strong> Your name, contact details (phone/email), gender, birth date, training goal, medical notes and an emergency contact — plus your session attendance, exercise logs, measurements and progress photos. Nothing else; the portal shows no ads and uses no tracking cookies.</p>
+      <p><strong>Why we collect it.</strong> Solely to plan and deliver your personal-training programme, track your progress, send session reminders/reports you opt into, and meet safety obligations. Medical notes are used only to keep your training safe.</p>
+      <p><strong>Who sees it.</strong> Only you and the head coach (admin). Data is stored in our private cloud database (Supabase) with per-user access control; progress media is served through private Google Drive links that only authenticated users of this portal can open.</p>
+      <p><strong>Sharing &amp; messaging.</strong> Session links and reminders are sent to you over WhatsApp/email at your request. We never sell or rent your data, and we share it with no third parties for marketing.</p>
+      <p><strong>Retention &amp; deletion.</strong> Records are kept while you are an active client. You may ask the admin at any time to export or permanently delete your data — requests are actioned within 7 days.</p>
+      <p><strong>Security.</strong> Password-protected login, HTTPS-only transport and least-privilege access. You are responsible for keeping your login credentials confidential.</p>
+      <p><strong>Questions?</strong> Email <a href="mailto:sutariaabhi98@gmail.com">sutariaabhi98@gmail.com</a> or message the admin on WhatsApp (+971 52 139 1505).</p>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-secondary" id="closePrivacyBtn">Close</button>
+    </div>
+  </div>
+</div>
+
+<div id="termsModal" class="modal-overlay hidden">
+  <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="termsModalTitle">
+    <h3 id="termsModalTitle">📄 Terms of Use</h3>
+    <p class="modal-subhead">Effective October 2026 · Team Abhi Sutaria — Personal Training, Dubai, UAE</p>
+    <div class="legal-body">
+      <p><strong>1. The portal.</strong> This app is a private training workspace for registered clients of Team Abhi Sutaria. Your login (client ID + password) is personal — do not share it. Accounts are created and approved by the admin.</p>
+      <p><strong>2. Acceptable use.</strong> Use the portal only to view your plan, log your progress and communicate about sessions. Uploading false data, attempting to access other users' records, or misusing reminder/report features may lead to suspension.</p>
+      <p><strong>3. Training guidance.</strong> Workouts, nutrition hints and reports are general guidance from your coach for your stated goal and disclosed conditions. They are not medical advice. Consult your physician before starting any programme, stop any exercise that causes pain, and keep your medical notes up to date.</p>
+      <p><strong>4. Sessions, booking &amp; cancellations.</strong> Booked times shown in the portal are confirmed slots. Please give at least 12 hours' notice to cancel or reschedule; late cancellations/no-shows may be counted against your package as agreed with your coach.</p>
+      <p><strong>5. Payments.</strong> Fees, packages and rates are as agreed privately with the admin (see the rate shown in your dashboard). This portal itself does not process payments.</p>
+      <p><strong>6. Your content.</strong> Progress photos and logs you submit remain yours; you grant the coach permission to store and use them solely to track and deliver your training.</p>
+      <p><strong>7. Availability &amp; changes.</strong> We aim for high uptime but the portal is provided "as is"; features may evolve and scheduled maintenance may occur. Material changes to these terms will be announced in the portal.</p>
+      <p><strong>8. Governing law.</strong> These terms are governed by the laws of the United Arab Emirates (Dubai jurisdiction).</p>
+      <p>Contact for any term-related question: <a href="mailto:sutariaabhi98@gmail.com">sutariaabhi98@gmail.com</a> · WhatsApp +971 52 139 1505.</p>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-secondary" id="closeTermsBtn">Close</button>
+    </div>
+  </div>
+</div>
+
 <footer class="app-footer">
   <span class="app-footer-brand"><svg class="footer-logo" viewBox="0 0 236 64" role="img" aria-label="TAS Personal Training">
     <!-- self-contained lockup: renders identically in every theme (no white-on-white) -->
@@ -800,7 +841,47 @@
     <text x="78" y="30" font-family="Sora, Inter, Arial, sans-serif" font-weight="800" font-size="22" letter-spacing="-0.5" fill="#143d2c">TAS</text>
     <text x="78" y="50" font-family="Inter, Arial, sans-serif" font-weight="600" font-size="13" letter-spacing="0.2" fill="#143d2c" opacity="0.75">Personal Training</text>
   </svg></span>
-  <span class="app-footer-copy"><span id="footerAppUrl" title="Portal link sent in WhatsApp messages">—</span> · © <span id="footerYear">2026</span> · All rights reserved</span>
+  <div class="app-footer-main">
+    <!-- Footer navigation columns: About / Quick Links / Legal / Contact -->
+    <nav class="footer-nav" aria-label="Footer navigation">
+      <div class="footer-col">
+        <h4>About TAS</h4>
+        <p>Team Abhi Sutaria — certified personal training in Dubai, UAE. Customised workout plans, progress tracking and 1-on-1 coaching, all in one portal.</p>
+      </div>
+      <div class="footer-col">
+        <h4>Quick Links</h4>
+        <a href="#loginCard" data-scroll>🔐 Login</a>
+        <a href="#" data-open-modal="profileEditModal" data-logged="client" style="display:none;">👤 My Profile</a>
+        <a href="#" data-open-modal="progressModal" data-logged="client" style="display:none;">📈 Log Progress</a>
+        <a href="#" data-open-modal="dayLogModal" data-logged="client" style="display:none;">📝 Log Session</a>
+        <a href="#" data-open-modal="settingsPanel" data-logged="admin" style="display:none;">⚙️ Settings</a>
+        <a href="https://www.instagram.com/teamabhisutaria?stkn=d2FoMmxiZ3A2eXhz" target="_blank" rel="noopener noreferrer">🏋️ Coach on Instagram</a>
+      </div>
+      <div class="footer-col footer-col-legal">
+        <h4>Legal</h4>
+        <a href="#" data-open-modal="privacyModal">🔒 Privacy Policy</a>
+        <a href="#" data-open-modal="termsModal">📄 Terms of Use</a>
+        <a href="mailto:sutariaabhi98@gmail.com">✉️ Data Requests</a>
+      </div>
+      <div class="footer-col">
+        <h4>Contact</h4>
+        <a href="mailto:sutariaabhi98@gmail.com">✉️ sutariaabhi98@gmail.com</a>
+        <a href="https://wa.me/971521391505" target="_blank" rel="noopener noreferrer">📱 +971 52 139 1505</a>
+        <a href="https://www.instagram.com/teamabhisutaria?stkn=d2FoMmxiZ3A2eXhz" target="_blank" rel="noopener noreferrer">📸 @teamabhisutaria</a>
+        <span class="footer-hours">🕐 Coaching hours: daily, 6:00 – 22:00 (GST)</span>
+      </div>
+    </nav>
+    <span class="app-footer-copy"><span id="footerAppUrl" title="Portal link sent in WhatsApp messages">—</span> · © <span id="footerYear">2026</span> Team Abhi Sutaria · Dubai, UAE · All rights reserved</span>
+    <!-- Admin contact — same Email / Instagram / WhatsApp actions as the login screen -->
+    <div class="admin-contact footer-contact" id="footerAdminContact">
+      <div class="admin-contact-title">Need help? Contact the admin</div>
+      <div class="admin-contact-row">
+        <a class="btn-contact-email" href="mailto:sutariaabhi98@gmail.com" title="Email the admin">✉️ Email</a>
+        <a class="btn-contact-instagram" href="https://www.instagram.com/teamabhisutaria?stkn=d2FoMmxiZ3A2eXhz" target="_blank" rel="noopener noreferrer" title="Admin on Instagram">@teamabhisutaria</a>
+        <a class="btn-contact-whatsapp" href="https://wa.me/971521391505" target="_blank" rel="noopener noreferrer" title="WhatsApp the admin: +971 52 139 1505">📱 WhatsApp</a>
+      </div>
+    </div>
+  </div>
 </footer>
 
 <div id="toastContainer" role="status" aria-live="polite"></div>
@@ -833,6 +914,83 @@
 <script src="js/update-site.js"></script>
 <script src="js/pwa.js"></script>
 <script src="js/main.js"></script>
+
+<script>
+/* ---- Footer navigation (Privacy / Terms / Quick Links) ----
+   Wired here because the footer markup ships with index.html;
+   all lookups are guarded so nothing breaks if an element is absent. */
+(function () {
+  // Open a modal-overlay OR an admin panel (settingsPanel uses .hidden too).
+  function openFooterTarget(id) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    var S = window.APP_STATE || {};
+    if (el.id === 'progressModal') {
+      // Same entry point the "Add My Progress" button uses.
+      if (typeof window.openProgressModal === 'function' && S.loggedInClient) {
+        window.openProgressModal(null, S.loggedInClient.id, 'client');
+      }
+    } else if (el.id === 'profileEditModal') {
+      // Replicate the client profile-edit opener (prefills fields).
+      var c = S.loggedInClient;
+      if (!c) return;
+      var p = (typeof clientMapGet === 'function' && clientMapGet(S.clientProfiles, c.id)) || {};
+      [['peHeight','height_cm'],['peGender','gender'],['peBirth','birth_date'],
+       ['peGoal','goal'],['peMedical','medical_notes'],['peEmergency','emergency_contact']].forEach(function (m) {
+        var f = document.getElementById(m[0]); if (f) f.value = p[m[1]] || '';
+      });
+      el.classList.remove('hidden');
+      var st = document.getElementById('profileEditStatus'); if (st) st.textContent = '';
+    } else if (el.id === 'dayLogModal') {
+      if (typeof window.openDayLogModal === 'function') {
+        window.openDayLogModal(S.selectedDay || new Date().getDate());
+      }
+    } else if (el.id === 'settingsPanel') {
+      if (S.selectedClientId && typeof window.openSettingsForClient === 'function') {
+        window.openSettingsForClient(S.selectedClientId);
+      } else {
+        el.classList.remove('hidden');
+      }
+    } else {
+      el.classList.remove('hidden');
+    }
+  }
+
+  // Show/hide role-gated quick links ('admin' | 'client' | null).
+  window.refreshFooterNav = function (role) {
+    document.querySelectorAll('.footer-nav [data-logged]').forEach(function (a) {
+      a.style.display = (a.getAttribute('data-logged') === role) ? '' : 'none';
+    });
+    var loginLink = document.querySelector('.footer-nav a[data-scroll]');
+    if (loginLink) loginLink.style.display = role ? 'none' : '';
+  };
+
+  document.addEventListener('click', function (e) {
+    var link = e.target.closest ? e.target.closest('.footer-nav a') : null;
+    if (!link) return;
+    var modalId = link.getAttribute('data-open-modal');
+    if (modalId) { e.preventDefault(); openFooterTarget(modalId); return; }
+    if (link.hasAttribute('data-scroll')) {
+      e.preventDefault();
+      var t = document.getElementById((link.getAttribute('href') || '').replace('#', ''));
+      if (t) t.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  });
+
+  // Close buttons + backdrop click for the legal modals
+  [['closePrivacyBtn', 'privacyModal'], ['closeTermsBtn', 'termsModal']].forEach(function (p) {
+    var btn = document.getElementById(p[0]);
+    if (btn) btn.addEventListener('click', function () {
+      var m = document.getElementById(p[1]);
+      if (m) m.classList.add('hidden');
+    });
+  });
+  ['privacyModal', 'termsModal'].forEach(function (id) {
+    var m = document.getElementById(id);
+    if (m) m.addEventListener('click', function (e) { if (e.target === m) m.classList.add('hidden'); });
+  });
+})();
+</script>
 
 
 </body>
