@@ -74,10 +74,10 @@ input,select,textarea,button{font-family:inherit;}
 .unified-wrap{max-width:600px;margin:0 auto;width:100%;}
 .card{background:var(--surface);border-radius:var(--r-xl);box-shadow:var(--shadow-lg);padding:1.6rem;border:1px solid var(--line-soft);width:100%;transition:box-shadow var(--dur) var(--ease);}
 
-.login-card{position:relative;padding:2.4rem 1.6rem 1.6rem 3.4rem;border-top:5px solid var(--steel-600);transition:border-color 0.3s;}
+.login-card{position:relative;padding:1.5rem 1.5rem 1.4rem;border-top:5px solid var(--steel-600);transition:border-color 0.3s;}
 .login-card.admin-mode{border-top-color:var(--brand-700);}
 
-.theme-toggle{position:absolute;top:1.2rem;left:0.95rem;z-index:2;}
+.theme-toggle{position:absolute;top:0.9rem;left:0.85rem;z-index:3;}
 
 /* ---- Admin contact block on the login card (email / Instagram / WhatsApp) ---- */
 .admin-contact{margin-top:1.1rem;padding-top:0.9rem;border-top:1px dashed var(--line);text-align:center;}
@@ -90,21 +90,19 @@ input,select,textarea,button{font-family:inherit;}
 .btn-contact-whatsapp{background:linear-gradient(135deg,#1eb45f,#25D366);box-shadow:0 4px 10px -4px rgba(37,211,102,.5);}
 [data-theme="dark"] .btn-contact-email,[data-theme="dark"] .btn-contact-instagram,[data-theme="dark"] .btn-contact-whatsapp{color:#fff;}
 @media (max-width:480px){.admin-contact-row a{white-space:normal;flex:1 1 auto;}}
-/* Top-right brand corner on the login card.
-   The SVG "TAS Personal Training" wordmark and the Drive photo are
-   stacked in a vertical column (wordmark ON TOP, photo BELOW) with a
-   real gap between them — previously both were absolutely positioned
-   inside one square box, which made them overlap. */
-.login-logo-corner{position:absolute;top:0.8rem;right:0.8rem;width:340px;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:0.5rem;overflow:visible;border-radius:1rem;z-index:2;}
-.login-logo-corner .logo-lockup-wrap{width:100%;display:flex;align-items:center;justify-content:center;flex:0 0 auto;}
+/* Login brand row (compact header inside the card).
+   Photo on the LEFT — slightly raised for a premium feel — wordmark +
+   tagline stacked on the RIGHT. One tidy row instead of the old tall
+   corner block, so the login form sits high on the screen and is fully
+   visible on phones without scrolling up past the logo. */
+.login-brand-row{display:flex;align-items:center;gap:1rem;margin:0 0 1.15rem;padding-right:2.6rem;}
 /* Photo: bigger, edge-to-edge (object-fit:cover), no border/box — just a clean rounded image */
-.login-logo-corner .logo-photo-wrap{width:296px;height:296px;display:flex;align-items:center;justify-content:center;overflow:hidden;border-radius:1rem;background:transparent;border:none;box-shadow:none;flex:0 0 auto;}
-.login-logo-corner .logo-lockup-wrap img{width:100%;height:auto;object-fit:contain;display:block;}
-.login-logo-corner .logo-photo-wrap img{width:100%;height:100%;object-fit:cover;display:block;border:none;border-radius:1rem;}
-.login-logo-corner .gdrive-fallback{min-height:80px !important;font-size:0.7rem;}
-
-/* Reserve space for the corner block so the heading text never slides under it. */
-.login-head{padding-right:354px;}
+.login-brand-row .logo-photo-wrap{width:138px;height:138px;display:flex;align-items:center;justify-content:center;overflow:hidden;border-radius:1rem;background:transparent;border:none;flex:0 0 auto;margin-top:-1.4rem;box-shadow:0 14px 30px -12px rgba(20,45,70,.35);}
+.login-brand-row .logo-photo-wrap img{width:100%;height:100%;object-fit:cover;display:block;border:none;border-radius:1rem;}
+.login-brand-text{display:flex;flex-direction:column;gap:0.4rem;min-width:0;}
+.login-brand-text .logo-lockup{width:min(236px,100%);height:auto;color:var(--brand-800);display:block;}
+.login-brand-tag{font-size:0.72rem;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;color:var(--muted);}
+.login-brand-row .gdrive-fallback{min-height:60px !important;font-size:0.7rem;}
 
 h2{font-size:clamp(1.4rem,3.5vw,1.85rem);font-weight:800;margin-bottom:0.3rem;color:var(--ink);line-height:1.2;letter-spacing:-0.02em;}
 .subhead{color:var(--ink-soft);font-size:0.88rem;margin-bottom:1.2rem;border-left:3px solid var(--steel-600);padding-left:0.8rem;line-height:1.5;}
@@ -400,8 +398,8 @@ button:disabled{opacity:0.55;cursor:not-allowed;}
 @media (max-width:700px){
   body{padding:0.7rem 0.5rem;font-size:14px;}
   .card{padding:1.1rem;border-radius:var(--r-lg);}
-  .login-card{padding-left:3.1rem;}
-  .theme-toggle{top:0.95rem;left:0.7rem;width:32px;height:32px;font-size:0.9rem;}
+  .login-card{padding:1.25rem 1.1rem 1.15rem;}
+  .theme-toggle{top:0.8rem;left:0.6rem;width:32px;height:32px;font-size:0.9rem;}
   h2{font-size:1.35rem;}
   .subhead{font-size:0.82rem;margin-bottom:1rem;}
   input,select,textarea{padding:0.7rem 0.9rem;font-size:0.9rem;min-height:44px;}
@@ -422,9 +420,12 @@ button:disabled{opacity:0.55;cursor:not-allowed;}
   .free-add-row .btn-add-custom{flex:1 1 100%;}
   .contact-picker-row .input-group{flex:1 1 100%;}
   .contact-picker-row .btn-contact{width:100%;}
-  .login-logo-corner{width:250px;top:0.6rem;right:0.6rem;gap:0.4rem;}
-  .login-logo-corner .logo-photo-wrap{width:220px;height:220px;border-radius:0.85rem;border:none;box-shadow:none;background:transparent;}
-  .login-head{padding-right:262px;}
+  /* Compact brand header on phones — one slim row, form stays above the fold */
+  .login-brand-row{gap:0.75rem;margin-bottom:0.95rem;padding-right:2.2rem;}
+  .login-brand-row .logo-photo-wrap{width:84px;height:84px;border-radius:0.75rem;margin-top:-0.9rem;box-shadow:0 10px 22px -10px rgba(20,45,70,.35);}
+  .login-brand-row .logo-photo-wrap img{border-radius:0.75rem;}
+  .login-brand-text .logo-lockup{width:min(200px,100%);}
+  .login-brand-tag{font-size:0.66rem;}
   #bgWatermark img{width:130%;}
   .progress-photo-wrap{max-width:100%;height:320px;}
   .theme-toggle{width:34px;height:34px;}
@@ -435,9 +436,12 @@ button:disabled{opacity:0.55;cursor:not-allowed;}
   h2{font-size:1.2rem;}
   .exercise-entry-fields{grid-template-columns:1fr;}
   .progress-entry-grid{grid-template-columns:1fr;}
-  .login-logo-corner{width:216px;}
-  .login-logo-corner .logo-photo-wrap{width:190px;height:190px;border-radius:0.75rem;border:none;box-shadow:none;background:transparent;}
-  .login-head{padding-right:228px;}
+  /* Very narrow phones: centered slim strip — logo + wordmark only, form immediately below */
+  .login-brand-row{justify-content:center;flex-wrap:wrap;padding-right:2rem;margin-bottom:0.85rem;text-align:center;}
+  .login-brand-row .logo-photo-wrap{width:76px;height:76px;border-radius:0.7rem;margin-top:-0.7rem;}
+  .login-brand-row .logo-photo-wrap img{border-radius:0.7rem;}
+  .login-brand-text{align-items:center;gap:0.3rem;}
+  .login-brand-text .logo-lockup{width:min(190px,100%);}
 }
 /* ============================================================
    PROFESSIONAL UPGRADE v2 — toasts, confirm dialog, search,
@@ -1035,19 +1039,24 @@ h1,h2,h3,.dash-title,.section-card-title,.modal-header h3,
 h2,.modal-header h3{letter-spacing:-0.025em;}
 .app-footer-brand{font-family:var(--font-display);}
 
-/* ---- SVG logo lockup + photo (login card corner) ----
-   Static layout: the wordmark sits in its own row, the photo in the row
-   below it. Nothing is absolutely positioned on top of anything else,
-   so the two marks can never overlap again. */
-.login-logo-corner .logo-lockup{position:static;inset:auto;width:100%;height:auto;color:var(--brand-800);z-index:auto;display:block;}
-.login-logo-corner img{position:static;z-index:auto;}
+/* ---- SVG logo lockup + photo (login brand row) ----
+   Static flex layout: the photo sits in its own column, the wordmark +
+   tagline in the next. Nothing is absolutely positioned on top of
+   anything else, so the two marks can never overlap. */
+.login-brand-row .logo-lockup{position:static;inset:auto;color:var(--brand-800);z-index:auto;display:block;}
+.login-brand-row img{position:static;z-index:auto;}
 /* while the Drive photo loads (or if it fails), the crisp SVG lockup shows */
-.login-logo-corner img[src=""],.login-logo-corner img:not([src]){visibility:hidden;}
+.login-brand-row img[src=""],.login-brand-row img:not([src]){visibility:hidden;}
 /* photo failed everywhere → drop the empty framed box, keep only the wordmark */
-.login-logo-corner .logo-photo-wrap:has(img[style*="display: none"]){display:none;}
+.login-brand-row .logo-photo-wrap:has(img[style*="display: none"]){display:none;}
 .footer-logo{width:150px;height:40px;display:inline-block;vertical-align:middle;}
 /* footer logo uses hardcoded brand colours (self-contained SVG) so it never inherits a theme colour */
-[data-theme="dark"] .login-logo-corner .logo-lockup{color:var(--brand-800);}
+[data-theme="dark"] .login-brand-row .logo-lockup{color:var(--brand-800);}
+
+/* ---- Footer dark theme ---- */
+[data-theme="dark"] .footer-col h4{color:var(--brand-300);}
+[data-theme="dark"] .footer-col a{color:var(--ink-soft);}
+[data-theme="dark"] .footer-col a:hover{color:#fff;}
 
 /* ---- Background watermark: SVG mark first (always renders), photo on top when loaded ---- */
 #bgWatermark .wm-svg{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:min(72vmin,640px);height:auto;opacity:.07;filter:saturate(.85);}
@@ -1147,7 +1156,7 @@ input,select,textarea{font-size:clamp(1rem,0.95rem + 0.2vw,1.05rem);} /* ≥16px
 
 /* ---- Fluid page width: compact on phones, comfortable on laptops/desktops ---- */
 .unified-wrap{max-width:min(640px,100%);}
-.app-footer{max-width:min(640px,100% - 1rem);margin-top:1.2rem;padding:1.1rem 1.2rem 0.8rem;}
+.app-footer{max-width:min(640px,100% - 1rem);margin-top:1.2rem;padding:1.1rem 1.2rem 0.8rem;border-radius:var(--r-lg);}
 @media (min-width:1100px){ .unified-wrap{max-width:760px;} .app-footer{max-width:760px;} }
 @media (min-width:1500px){ .unified-wrap{max-width:840px;} .app-footer{max-width:840px;} }
 
@@ -1170,9 +1179,9 @@ img{max-width:100%;}
 /* ---- Landscape phones: use the extra height wisely ---- */
 @media (max-height:460px) and (orientation:landscape){
   body{padding-top:calc(0.4rem + var(--safe-t));}
-  .login-logo-corner{width:156px;gap:0.35rem;}
-  .login-logo-corner .logo-photo-wrap{width:116px;height:116px;border-radius:0.6rem;border:none;box-shadow:none;background:transparent;}
-  .login-head{padding-right:168px;}
+  .login-brand-row{margin-bottom:0.7rem;}
+  .login-brand-row .logo-photo-wrap{width:72px;height:72px;border-radius:0.6rem;margin-top:-0.6rem;}
+  .login-brand-row .logo-photo-wrap img{border-radius:0.6rem;}
   #bgWatermark{display:none;}
 }
 
@@ -1311,6 +1320,37 @@ html.layout-overflow img{max-width:100vw;}
   .footer-col{flex:1 1 100%;}
   .footer-tagline{max-width:none;}
 }
-[data-theme="dark"] .footer-col h4{color:var(--brand-300);}
-[data-theme="dark"] .footer-col a{color:var(--ink-soft);}
-[data-theme="dark"] .footer-col a:hover{color:#fff;}
+/* ============================================================
+   🧭 PROFESSIONAL FOOTER v4 — compact boxes, proper visibility
+   Tight type scale (min 11px), consistent pill buttons, roomy
+   but compact columns; fully readable on phones and laptops.
+   ============================================================ */
+.footer-col h4{font-size:0.7rem;margin-bottom:0.35rem;}
+.footer-col a,.footer-hours{font-size:0.76rem;line-height:1.5;}
+.footer-tagline{font-size:0.78rem;line-height:1.55;max-width:300px;}
+.app-footer-copy{font-size:0.72rem;line-height:1.5;}
+.footer-contact .admin-contact-title{font-size:0.74rem;font-weight:800;color:var(--ink-soft);}
+.footer-contact .admin-contact-row a{box-shadow:0 3px 8px -3px rgba(20,45,70,.35);}
+.footer-contact .admin-contact-row a:hover{transform:translateY(-1px);filter:brightness(1.06);}
+@media (max-width:600px){
+  .footer-nav{gap:0.9rem 1.1rem;}
+}
+@media (max-width:480px){
+  .app-footer{padding:1.05rem 0.9rem 0.75rem;}
+  .footer-top{gap:0.85rem;}
+  .footer-brand-col{gap:0.5rem;}
+  .footer-logo{width:150px;}
+  .footer-tagline{max-width:none;font-size:0.76rem;}
+  .footer-col h4{margin-bottom:0.3rem;}
+  .footer-contact .admin-contact-row a{flex:1 1 auto;min-height:40px;padding:0.45rem 0.7rem;font-size:0.75rem;}
+}
+
+/* ============================================================
+   📱 LOGIN VISIBILITY v5 — keep the form above the fold
+   The login card now opens with ONE slim brand row (see
+   "Login brand row" above) instead of the old tall corner
+   block, so on phones you land straight on the form — no more
+   scrolling up past a giant logo to read the inputs.
+   Extra breathing room below the fixed tab dock.
+   ============================================================ */
+html.device-phone #loginCard:not(.hidden){margin-bottom:calc(1rem + var(--safe-b));}

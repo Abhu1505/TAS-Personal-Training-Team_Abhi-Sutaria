@@ -117,15 +117,20 @@
 
 <div class="unified-wrap">
   <div class="card login-card" id="loginCard">
-    <!-- Two brand marks, stacked vertically so they NEVER overlap:
-         1) crisp SVG "TAS Personal Training" wordmark (always visible)
-         2) the gym photo below it (loads from Drive; hidden if unavailable) -->
-    <div class="login-logo-corner">
-      <div class="logo-lockup-wrap">
-        <svg class="logo-lockup" viewBox="0 0 236 64" role="img" aria-label="TAS Personal Training"><use href="#tas-lockup"/></svg>
-      </div>
+    <!-- Brand mark: ONE compact header row — photo on the LEFT (slightly
+         raised), wordmark + tagline stacked on the RIGHT. This replaces the
+         old top-right corner block that pushed the login card's content far
+         down the page on phones (users had to scroll up past the logo just
+         to reach the form). Hidden entirely when logged in (only #loginCard
+         shows at a time), and collapses to a slim centered strip on narrow
+         screens so the form is always above the fold. -->
+    <div class="login-brand-row">
       <div class="logo-photo-wrap">
         <img data-gdrive-id="1N651kHeVrz6HEhAc1cRRKGx2DtS-IdX0" alt="TAS Personal Training logo photo">
+      </div>
+      <div class="login-brand-text">
+        <svg class="logo-lockup" viewBox="0 0 236 64" role="img" aria-label="TAS Personal Training"><use href="#tas-lockup"/></svg>
+        <span class="login-brand-tag">Coaching portal · Dubai, UAE</span>
       </div>
     </div>
     <div class="login-head">
