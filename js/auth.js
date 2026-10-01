@@ -34,6 +34,12 @@ window.handleUnifiedLogin = async function () {
 
 window.openAdminDashboard = function () {
   APP_STATE.loggedInClient = null;
+  // Remember on THIS device only — next time the app opens on this
+  // device the admin lands straight back in the dashboard.
+  if (typeof tasSaveSession === 'function') {
+    tasSaveSession({ role: 'admin', loginId: APP_STATE.adminConfig.admin_login_id });
+  }
+  try { sessionStorage.setItem('tas_trainer_session', '1'); } catch (e) {}
   transitionToCard($('adminDashboard'), ['loginCard', 'clientDashboard']);
   $('adminDisplayId').textContent = APP_STATE.adminConfig.admin_login_id;
   clearStatus($('unifiedStatus'));
@@ -52,6 +58,11 @@ window.openAdminDashboard = function () {
 
 window.openClientDashboard = function (c) {
   APP_STATE.loggedInClient = c;
+  // Remember on THIS device only — next time the app opens on this
+  // device the client lands straight back in their portal.
+  if (typeof tasSaveSession === 'function') {
+    tasSaveSession({ role: 'client', clientId: String(c.id), loginId: c.login_id });
+  }
   transitionToCard($('clientDashboard'), ['loginCard', 'adminDashboard']);
   $('welcomeClientName').textContent = c.name;
   clearStatus($('unifiedStatus'));
@@ -65,6 +76,11 @@ window.openClientDashboard = function (c) {
     b.classList.toggle('active', b.dataset.ctab === 'plan'));
   document.querySelectorAll('.tab-content[id^="ctab-"]').forEach(t =>
     t.classList.toggle('hidden', t.id !== 'ctab-plan'));
+
+  // Client portal: start the live notification watcher too, so the
+  // client also gets a beep + popup when the trainer sets a class
+  // time, assigns exercises or marks a session.
+  if (typeof window.startNotificationPolling === 'function') window.startNotificationPolling();
 };
 
 // Full (re)render of everything the client portal shows. Called on login,
@@ -104,8 +120,35 @@ window.refreshClientPortalViews = window.refreshClientPortalViews || function ()
 window.unifiedLogout = function () {
   APP_STATE.loggedInClient = null;
   APP_STATE.selectedClientId = null;
+  // Forget this device — next open shows the login screen again.
+  if (typeof tasClearSession === 'function') tasClearSession();
   transitionToCard($('loginCard'), ['clientDashboard', 'adminDashboard']);
   $('loginIdInput').value = '';
   $('passwordInput').value = '';
   clearStatus($('unifiedStatus'));
+};
+
+/* ============================================================
+   AUTO-RESTORE — called once after cloud data has loaded.
+   If THIS device has a saved login (client or admin), skip the
+   login form and open the matching dashboard directly.
+   ============================================================ */
+window.tryRestoreDeviceSession = function () {
+  const sess = (typeof tasLoadSession === 'function') ? tasLoadSession() : null;
+  if (!sess) return false;
+  if (sess.role === 'admin') {
+    // Admin credentials may have changed in settings — re-validate.
+    const pwOk = !sess.password || sess.password === APP_STATE.adminConfig.admin_password;
+    if (pwOk && typeof openAdminDashboard === 'function') { openAdminDashboard(); return true; }
+    tasClearSession();
+    return false;
+  }
+  if (sess.role === 'client' && sess.clientId) {
+    const c = (APP_STATE.clients || []).find(x => sameId(x.id, sess.clientId));
+    if (c && c.active !== false) { openClientDashboard(c); return true; }
+    // Client removed / closed on another device → must log in again.
+    tasClearSession();
+    return false;
+  }
+  return false;
 };
