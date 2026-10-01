@@ -436,7 +436,7 @@ button:disabled{opacity:0.55;cursor:not-allowed;}
 .btn-retry:hover{background:var(--warning-bg);}
 
 /* ---- Footer ---- */
-.app-footer{max-width:600px;margin:1.6rem auto 0.4rem;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.4rem;padding:0.9rem 1.2rem;background:rgba(255,255,255,0.75);border-radius:var(--r-lg);border:1px solid var(--line);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);box-shadow:var(--shadow-sm);}
+.app-footer{max-width:600px;margin:1.6rem auto 0.4rem;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.4rem;padding:0.9rem 1.2rem;background:var(--surface);border-radius:var(--r-lg);border:1px solid var(--line-soft);border-top:3px solid var(--brand-700);box-shadow:var(--shadow-lg);}
 .app-footer-brand{font-weight:800;color:var(--brand-700);font-size:0.82rem;letter-spacing:0.3px;}
 .app-footer-copy{font-size:0.7rem;color:var(--muted);}
 
@@ -512,7 +512,6 @@ button:focus-visible,input:focus-visible,select:focus-visible,a:focus-visible,[t
 [data-theme="dark"] .badge,[data-theme="dark"] .client-login-badge,[data-theme="dark"] .session-card,[data-theme="dark"] .client-item,[data-theme="dark"] .progress-entry,[data-theme="dark"] .approval-card,[data-theme="dark"] .history-item,[data-theme="dark"] .library-row,[data-theme="dark"] .assign-row,[data-theme="dark"] .exercise-entry,[data-theme="dark"] .month-summary-day,[data-theme="dark"] .profile-field,[data-theme="dark"] .free-add-row{background:var(--surface-alt);}
 [data-theme="dark"] .client-login-badge{background:#3a2130;color:#f3b8d0;border-color:#7a3a5b;}
 [data-theme="dark"] .toast{background:rgba(24,43,58,.94);color:var(--ink);}
-[data-theme="dark"] .app-footer{background:rgba(19,34,47,.8);}
 [data-theme="dark"] #bgWatermark img{opacity:0.05;filter:grayscale(60%) brightness(1.6);}
 [data-theme="dark"] .tab-btn.active{background:var(--surface-tint);}
 [data-theme="dark"] ::-webkit-scrollbar-thumb{background:#3a556c;}
@@ -587,7 +586,6 @@ html.theme-anim .stat-tile,html.theme-anim .settings-panel,html.theme-anim .remi
 [data-theme="dark"] .progress-photo-wrap{background:var(--surface-tint);}
 [data-theme="dark"] .plan-empty{background:var(--surface-tint);}
 [data-theme="dark"] .summary-text{color:var(--brand-800);}
-[data-theme="dark"] .app-footer-brand{color:var(--brand-700);}
 [data-theme="dark"] .last-time-banner{color:var(--purple);border-left-color:var(--purple);}
 [data-theme="dark"] .btn-retry{background:var(--surface-tint);}
 [data-theme="dark"] .ui-confirm-message{color:var(--ink-soft);}
@@ -968,8 +966,9 @@ h2,.modal-header h3{letter-spacing:-0.025em;}
 .login-logo-corner img{position:relative;z-index:1;}
 /* while the Drive photo loads (or if it fails), the crisp SVG lockup shows */
 .login-logo-corner img[src=""],.login-logo-corner img:not([src]){visibility:hidden;}
-.footer-logo{width:150px;height:40px;color:var(--brand-700);display:inline-block;vertical-align:middle;}
-[data-theme="dark"] .footer-logo,[data-theme="dark"] .login-logo-corner .logo-lockup{color:var(--brand-800);}
+.footer-logo{width:150px;height:40px;display:inline-block;vertical-align:middle;}
+/* footer logo uses hardcoded brand colours (self-contained SVG) so it never inherits a theme colour */
+[data-theme="dark"] .login-logo-corner .logo-lockup{color:var(--brand-800);}
 
 /* ---- Background watermark: SVG mark first (always renders), photo on top when loaded ---- */
 #bgWatermark .wm-svg{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:min(72vmin,640px);height:auto;opacity:.07;filter:saturate(.85);}
