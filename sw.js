@@ -14,7 +14,7 @@
    ============================================================ */
 'use strict';
 
-const VERSION = 'tas-pwa-v12';
+const VERSION = 'tas-pwa-v13';
 const SHELL_CACHE   = VERSION + '-shell';
 const RUNTIME_CACHE = VERSION + '-runtime';
 
@@ -24,6 +24,9 @@ const PRECACHE = [
   './css/styles.css',
   './manifest.webmanifest',
   './icons/icon.svg',
+  './icons/icon-192.png', './icons/icon-512.png', './icons/maskable-512.png',
+  './icons/apple-touch-icon.png',
+  './favicon-16.png', './favicon-32.png', './favicon-48.png',
   './js/config.js', './js/drive-images.js', './js/utils.js', './js/toast.js',
   './js/state.js', './js/exercise-library.js', './js/supabase-client.js',
   './js/realtime.js', './js/report.js', './js/contacts.js', './js/auth.js',

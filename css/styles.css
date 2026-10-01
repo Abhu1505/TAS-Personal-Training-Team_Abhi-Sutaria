@@ -106,8 +106,8 @@ input,select,textarea,button{font-family:inherit;}
 .login-brand-text{flex:1 1 auto;display:flex;flex-direction:column;gap:0.4rem;min-width:0;}
 /* Photo: PRO compact square (was 138px — too tall on phones, pushed the form
    below the fold). Clean rounded image with a subtle ring for a premium look. */
-.login-brand-row .logo-photo-wrap{width:92px;height:92px;display:flex;align-items:center;justify-content:center;overflow:hidden;border-radius:0.9rem;background:transparent;border:none;flex:0 0 auto;margin-top:-1.1rem;box-shadow:0 10px 24px -10px rgba(20,45,70,.35),0 0 0 3px rgba(43,110,158,.10);}
-.login-brand-row .logo-photo-wrap img{width:100%;height:100%;object-fit:cover;display:block;border:none;border-radius:0.9rem;}
+.login-brand-row .logo-photo-wrap{width:128px;height:128px;display:flex;align-items:center;justify-content:center;overflow:hidden;border-radius:0;background:transparent;border:none;outline:none;flex:0 0 auto;margin-top:-1.1rem;box-shadow:none;}
+.login-brand-row .logo-photo-wrap img{width:100%;height:100%;object-fit:contain;display:block;border:none;border-radius:0;box-shadow:none;background:transparent;}
 .login-brand-text{display:flex;flex-direction:column;gap:0.4rem;min-width:0;}
 .login-brand-text .logo-lockup{width:min(236px,100%);height:auto;color:var(--brand-800);display:block;}
 .login-brand-tag{font-size:0.72rem;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;color:var(--muted);}
@@ -450,8 +450,8 @@ button:disabled{opacity:0.55;cursor:not-allowed;}
   /* Compact brand header on phones — one slim row (wordmark left, photo
      right), form stays above the fold */
   .login-brand-row{gap:0.65rem;margin-bottom:0.95rem;padding-left:2.2rem;}
-  .login-brand-row .logo-photo-wrap{width:74px;height:74px;border-radius:0.75rem;margin-top:-0.9rem;box-shadow:0 8px 18px -8px rgba(20,45,70,.35),0 0 0 2.5px rgba(43,110,158,.10);}
-  .login-brand-row .logo-photo-wrap img{border-radius:0.75rem;}
+  .login-brand-row .logo-photo-wrap{width:104px;height:104px;border-radius:0;margin-top:-0.9rem;box-shadow:none;}
+  .login-brand-row .logo-photo-wrap img{border-radius:0;}
   .login-brand-text .logo-lockup{width:min(200px,100%);}
   .login-brand-tag{font-size:0.66rem;}
   #bgWatermark img{width:130%;}
@@ -466,8 +466,8 @@ button:disabled{opacity:0.55;cursor:not-allowed;}
   .progress-entry-grid{grid-template-columns:1fr;}
   /* Very narrow phones: centered slim strip — logo + wordmark only, form immediately below */
   .login-brand-row{justify-content:center;flex-wrap:wrap;padding-left:2rem;margin-bottom:0.85rem;text-align:center;}
-  .login-brand-row .logo-photo-wrap{width:64px;height:64px;border-radius:0.7rem;margin-top:-0.6rem;}
-  .login-brand-row .logo-photo-wrap img{border-radius:0.7rem;}
+  .login-brand-row .logo-photo-wrap{width:92px;height:92px;border-radius:0;margin-top:-0.6rem;box-shadow:none;}
+  .login-brand-row .logo-photo-wrap img{border-radius:0;}
   .login-brand-text{align-items:center;gap:0.3rem;}
   .login-brand-text .logo-lockup{width:min(190px,100%);}
 }
@@ -1208,8 +1208,8 @@ img{max-width:100%;}
 @media (max-height:460px) and (orientation:landscape){
   body{padding-top:calc(0.4rem + var(--safe-t));}
   .login-brand-row{margin-bottom:0.55rem;}
-  .login-brand-row .logo-photo-wrap{width:56px;height:56px;border-radius:0.6rem;margin-top:-0.45rem;}
-  .login-brand-row .logo-photo-wrap img{border-radius:0.6rem;}
+  .login-brand-row .logo-photo-wrap{width:80px;height:80px;border-radius:0;margin-top:-0.45rem;box-shadow:none;}
+  .login-brand-row .logo-photo-wrap img{border-radius:0;}
   .login-card{padding:1rem 1.05rem !important;}
   .login-head{margin-bottom:0.7rem !important;}
   .subhead{margin-bottom:0.8rem !important;font-size:0.82rem;}
