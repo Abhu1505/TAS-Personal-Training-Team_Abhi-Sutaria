@@ -1,0 +1,654 @@
+From 3afe28ba849c92eeba8035e10eccba601719f56b Mon Sep 17 00:00:00 2001
+From: "qwen.ai[bot]" <qwenlm-intl@service.alibaba.com>
+Date: Thu, 1 Oct 2026 06:55:25 +0000
+Subject: [PATCH 2/2] Exclude local test scaffolding (tmp/) from published site
+
+---
+ .gitignore                |   1 +
+ tmp/smoke/mock.js         |  61 ------------------
+ tmp/smoke/runner.py       |  93 ---------------------------
+ tmp/smoke/runner2.py      |  92 ---------------------------
+ tmp/test/mock_supabase.js |  93 ---------------------------
+ tmp/test/run_test.py      | 128 --------------------------------------
+ tmp/test/serve.sh         |   3 -
+ tmp/test/verify_fixes.py  | 111 ---------------------------------
+ 8 files changed, 1 insertion(+), 581 deletions(-)
+ create mode 100644 .gitignore
+ delete mode 100644 tmp/smoke/mock.js
+ delete mode 100644 tmp/smoke/runner.py
+ delete mode 100644 tmp/smoke/runner2.py
+ delete mode 100644 tmp/test/mock_supabase.js
+ delete mode 100644 tmp/test/run_test.py
+ delete mode 100644 tmp/test/serve.sh
+ delete mode 100644 tmp/test/verify_fixes.py
+
+diff --git a/.gitignore b/.gitignore
+new file mode 100644
+index 0000000..3fec32c
+--- /dev/null
++++ b/.gitignore
+@@ -0,0 +1 @@
++tmp/
+diff --git a/tmp/smoke/mock.js b/tmp/smoke/mock.js
+deleted file mode 100644
+index 3a23c56..0000000
+--- a/tmp/smoke/mock.js
++++ /dev/null
+@@ -1,61 +0,0 @@
+-// Mock Supabase SDK — injected BEFORE app scripts so no network is needed.
+-window.__mockDb = {
+-  clients: [
+-    { id:'c1', name:'Alex Rivera', phone:'919876543210', email:'alex@x.com', active:true, created_at:'2026-01-05T10:00:00Z' },
+-    { id:'c2', name:'Sam Patel', phone:'918888888888', email:'', active:false, created_at:'2026-02-05T10:00:00Z' }
+-  ],
+-  client_settings: [
+-    { client_id:'c1', rate_per_session:250, gym_name:'FitZone Dubai Marina', gym_branch:'Marina Walk', gym_note:'Member 441' },
+-    { client_id:'c2', rate_per_session:200 }
+-  ],
+-  client_profiles: [],
+-  progress_entries: [
+-    { client_id:'c1', entry_date:'2026-07-05', weight_kg:'88.0', body_fat_pct:'24.0', chest_cm:'100', waist_cm:'92', hips_cm:'100', arms_cm:'35', thighs_cm:'55' },
+-    { client_id:'c1', entry_date:'2026-08-05', weight_kg:'85.5', body_fat_pct:'22.5', chest_cm:'101', waist_cm:'89', hips_cm:'99', arms_cm:'36', thighs_cm:'56' }
+-  ],
+-  progress_approvals: [],
+-  sessions: [
+-    { client_id:'c1', session_date:'2026-09-03', checked_at:'2026-09-03T08:00:00Z' },
+-    { client_id:'c1', session_date:'2026-09-10', checked_at:'2026-09-10T08:00:00Z' }
+-  ],
+-  exercises: [], client_exercises: [], workout_logs: [], daily_times: [],
+-  fitness_entries: [], profile_approvals: [], workout_edit_requests: [],
+-  progress_reports: [],
+-  admin_config: [{ id:1, admin_login_id:'TAS-Abhi', admin_password:'Abhu@1818', archive_email:'' }]
+-};
+-window.supabase = {
+-  createClient: function () {
+-    return {
+-      from: function (table) {
+-        var builder = {
+-          _eq: null,
+-          select: function () { return builder; },
+-          order: function () { return builder; },
+-          gte: function () { return builder; },
+-          lte: function () { return builder; },
+-          limit: function () { return builder; },
+-          eq: function (col, v) { builder._eq = [col, v]; return builder; },
+-          single: function () {
+-            var rows = window.__mockDb[table] || [];
+-            if (builder._eq) rows = rows.filter(function (r) { return r[builder._eq[0]] === builder._eq[1]; });
+-            return Promise.resolve({ data: rows[0] || null, error: rows[0] ? null : { message: 'no row' } });
+-          },
+-          insert: function (row) {
+-            var arr = window.__mockDb[table] = window.__mockDb[table] || [];
+-            (Array.isArray(row) ? row : [row]).forEach(function (r) { arr.unshift(Object.assign({ id: 'gen-' + Date.now(), created_at: new Date().toISOString() }, r)); });
+-            return Promise.resolve({ data: arr, error: null });
+-          },
+-          update: function () { return { eq: function () { return Promise.resolve({ error: null }); } }; },
+-          then: function (res) {
+-            var rows = window.__mockDb[table] || [];
+-            if (builder._eq) rows = rows.filter(function (r) { return r[builder._eq[0]] === builder._eq[1]; });
+-            return Promise.resolve({ data: rows, error: null }).then(res);
+-          }
+-        };
+-        return builder;
+-      },
+-      on: function () { return { subscribe: function () { return { unsubscribe: function () {} }; } }; },
+-      auth: { onAuthStateChange: function () { return { data: { subscription: null } }; } }
+-    };
+-  }
+-};
+diff --git a/tmp/smoke/runner.py b/tmp/smoke/runner.py
+deleted file mode 100644
+index db5c65d..0000000
+--- a/tmp/smoke/runner.py
++++ /dev/null
+@@ -1,93 +0,0 @@
+-import sys, threading, http.server, socketserver, functools, time
+-from playwright.sync_api import sync_playwright
+-
+-ROOT = '/workspace'
+-PORT = 8251
+-Handler = functools.partial(http.server.SimpleHTTPRequestHandler, directory=ROOT)
+-socketserver.TCPServer.allow_reuse_address = True
+-srv = socketserver.TCPServer(('127.0.0.1', PORT), Handler)
+-threading.Thread(target=srv.serve_forever, daemon=True).start()
+-time.sleep(0.3)
+-
+-results = []
+-def check(name, cond):
+-    results.append((name, bool(cond)))
+-    print(('PASS ' if cond else 'FAIL ') + name)
+-
+-with sync_playwright() as p:
+-    b = p.chromium.launch(args=['--no-sandbox'])
+-    pg = b.new_page()
+-    errors = []
+-    pg.on('pageerror', lambda e: errors.append(str(e)))
+-    pg.goto(f'http://127.0.0.1:{PORT}/index.html')
+-    # inject mock before app scripts by reloading with route interception
+-    mock_src = open('/workspace/tmp/test/mock_supabase.js').read()
+-    def route(r):
+-        if r.request.url.endswith('mock_inject.js'):
+-            r.fulfill(status=200, content_type='application/javascript', body=mock_src)
+-        else:
+-            r.continue_()
+-    pg.route('**/mock_inject.js', route)
+-    html = open(ROOT + '/index.html').read()
+-    html2 = html.replace('<script src="js/config.js">', '<script src="/mock_inject.js"></script>\n<script src="js/config.js">')
+-    def route2(r):
+-        if r.request.url.endswith('/index_test.html'):
+-            r.fulfill(status=200, content_type='text/html', body=html2)
+-        else:
+-            r.continue_()
+-    pg.route('**/index_test.html', route2)
+-    pg.goto(f'http://127.0.0.1:{PORT}/index_test.html')
+-    pg.wait_for_timeout(1500)
+-
+-    # 1. Admin login
+-    pg.fill('#loginIdInput', 'TAS-Abhi'); pg.fill('#passwordInput', 'Abhu@1818')
+-    pg.click('#unifiedLoginBtn'); pg.wait_for_timeout(600)
+-    check('admin login shows dashboard', pg.is_visible('#adminDashboard'))
+-
+-    # 2. go to clients workspace, select first client
+-    pg.evaluate("window.showAdminWorkspaceTab('clients')")
+-    pg.wait_for_timeout(400)
+-    check('clients workspace visible', pg.is_visible('#clientListContainer'))
+-    pg.click('#clientListContainer .client-item >> nth=0'); pg.wait_for_timeout(500)
+-
+-    # 3. THE FIX: click 🧮 Fitness tab -> content must be visible
+-    pg.click('.tab-btn[data-tab="fitness"]'); pg.wait_for_timeout(400)
+-    vis = pg.is_visible('#tab-fitness')
+-    has_content = pg.evaluate("!!document.querySelector('#tab-fitness .fitness-admin-section')")
+-    list_ok = pg.evaluate("!document.getElementById('adminClientFitnessList').classList.contains('hidden')")
+-    rendered = pg.evaluate("document.getElementById('adminClientFitnessList').innerHTML.length>0")
+-    check('fitness tab panel visible after click', vis and has_content and list_ok)
+-    check('fitness admin list rendered', rendered)
+-    btn_ok = pg.is_visible('#adminOpenFitnessBtn')
+-    check('Add Calculator Entry button visible', btn_ok)
+-
+-    # 4. progress tab no longer contains the fitness block (moved out)
+-    pg.click('.tab-btn[data-tab="progress"]'); pg.wait_for_timeout(300)
+-    moved = pg.evaluate("!document.querySelector('#tab-progress .fitness-admin-section')")
+-    check('fitness block removed from progress tab', moved)
+-
+-    # 5. open calculator modal via admin button
+-    pg.click('.tab-btn[data-tab="fitness"]'); pg.wait_for_timeout(200)
+-    pg.click('#adminOpenFitnessBtn'); pg.wait_for_timeout(400)
+-    check('fitness calc modal opens', pg.evaluate("!document.getElementById('fitnessCalcModal').classList.contains('hidden')"))
+-    pg.keyboard.press('Escape'); pg.evaluate("document.getElementById('fitnessCalcModal')?.classList.add('hidden')")
+-
+-    # 6. regression: other tabs still work
+-    for t in ['reminder','tracker','plan','progress']:
+-        pg.click(f'.tab-btn[data-tab="{t}"]'); pg.wait_for_timeout(150)
+-        check(f'tab {t} shows content', pg.evaluate(f"!document.getElementById('tab-{t}').classList.contains('hidden')"))
+-
+-    # 7. approvals panel open/close
+-    pg.click('#approvalsBtn'); pg.wait_for_timeout(300)
+-    check('approvals panel opens', pg.evaluate("!document.getElementById('approvalsPanel').classList.contains('hidden')"))
+-    pg.evaluate("document.getElementById('approvalsPanel').querySelector('.panel-close,[id*=close]')?.click()")
+-    pg.wait_for_timeout(200)
+-    check('approvals panel closes', pg.evaluate("document.getElementById('approvalsPanel').classList.contains('hidden')"))
+-
+-    check('no page JS errors', len(errors)==0)
+-    if errors: print('ERRORS:', errors[:5])
+-
+-b.close(); srv.shutdown()
+-fails = [n for n,c in results if not c]
+-print('\n%d/%d passed' % (len(results)-len(fails), len(results)))
+-sys.exit(1 if fails else 0)
+diff --git a/tmp/smoke/runner2.py b/tmp/smoke/runner2.py
+deleted file mode 100644
+index e3d863e..0000000
+--- a/tmp/smoke/runner2.py
++++ /dev/null
+@@ -1,92 +0,0 @@
+-import sys, threading, http.server, socketserver, functools, time
+-from playwright.sync_api import sync_playwright
+-
+-ROOT = '/workspace'
+-PORT = 8252
+-Handler = functools.partial(http.server.SimpleHTTPRequestHandler, directory=ROOT)
+-socketserver.TCPServer.allow_reuse_address = True
+-srv = socketserver.TCPServer(('127.0.0.1', PORT), Handler)
+-threading.Thread(target=srv.serve_forever, daemon=True).start()
+-time.sleep(0.3)
+-
+-results = []
+-def check(name, cond):
+-    results.append((name, bool(cond)))
+-    print(('PASS ' if cond else 'FAIL ') + name)
+-
+-with sync_playwright() as p:
+-    b = p.chromium.launch(args=['--no-sandbox'])
+-    pg = b.new_page()
+-    errors = []
+-    pg.on('pageerror', lambda e: errors.append(str(e)))
+-    mock_src = open('/workspace/tmp/smoke/mock.js').read()
+-    def route(r):
+-        if r.request.url.endswith('mock_inject.js'):
+-            r.fulfill(status=200, content_type='application/javascript', body=mock_src)
+-        else:
+-            r.continue_()
+-    pg.route('**/mock_inject.js', route)
+-    html = open(ROOT + '/index.html').read()
+-    html2 = html.replace('<script src="js/config.js">', '<script src="/mock_inject.js"></script>\n<script src="js/config.js">')
+-    def route2(r):
+-        if r.request.url.endswith('/index_test.html'):
+-            r.fulfill(status=200, content_type='text/html', body=html2)
+-        else:
+-            r.continue_()
+-    pg.route('**/index_test.html', route2)
+-    pg.goto(f'http://127.0.0.1:{PORT}/index_test.html')
+-    pg.wait_for_timeout(1500)
+-
+-    # Admin login
+-    pg.fill('#loginIdInput', 'TAS-Abhi'); pg.fill('#passwordInput', 'Abhu@1818')
+-    pg.click('#unifiedLoginBtn'); pg.wait_for_timeout(600)
+-    check('admin login shows dashboard', pg.is_visible('#adminDashboard'))
+-
+-    pg.evaluate("window.showAdminWorkspaceTab('clients')")
+-    pg.wait_for_timeout(400)
+-
+-    # --- Scenario B: full happy path with a selected client ---
+-    pg.click('#clientListContainer .client-item >> nth=0'); pg.wait_for_timeout(500)
+-    sel = pg.evaluate("!!APP_STATE.selectedClientId")
+-    check('B: client selected', sel)
+-    pg.click('.tab-btn[data-tab="fitness"]'); pg.wait_for_timeout(200)
+-    pg.click('#adminOpenFitnessBtn'); pg.wait_for_timeout(400)
+-    opened = pg.evaluate("!document.getElementById('fitnessCalcModal').classList.contains('hidden')")
+-    check('B: calculator modal opens on button click', opened)
+-    title_ok = pg.evaluate("(document.getElementById('fcModalTitle').textContent||'').includes('Add Calculator Entry')")
+-    check('B: modal titled "Add Calculator Entry — <client>"', title_ok)
+-    save_visible = pg.is_visible('#fcSaveAdminBtn')
+-    client_btns_hidden = pg.evaluate("Array.from(document.querySelectorAll('#fitnessCalcModal .fc-client-only')).every(e=>e.classList.contains('hidden'))")
+-    check('B: admin Save button visible, client buttons hidden', save_visible and client_btns_hidden)
+-
+-    # Fill the form and save for the client
+-    pg.fill('#fcWeight', '82.5'); pg.fill('#fcHeight', '178'); pg.fill('#fcAge', '34')
+-    pg.select_option('#fcSex', 'male'); pg.select_option('#fcActivity', '1.55')
+-    pg.wait_for_timeout(200)
+-    pg.click('#fcSaveAdminBtn'); pg.wait_for_timeout(700)
+-    saved = pg.evaluate("(document.getElementById('fcFormStatus').textContent||'').includes('Saved directly')")
+-    check('B: "Save for client" persists (success status)', saved)
+-    inserted = pg.evaluate("(window.__mockDb.fitness_entries||[]).filter(e=>e.client_id===APP_STATE.selectedClientId && e.status==='approved'&&e.added_by_admin===true).length")
+-    check('B: row inserted into fitness_entries as approved admin entry', inserted == 1)
+-    list_has = pg.evaluate("document.getElementById('adminClientFitnessList').innerHTML.includes('Added by trainer')")
+-    check('B: per-client fitness list re-rendered with new entry', list_has)
+-    modal_closed_after_close = False
+-    pg.click('#fcCloseBtn'); pg.wait_for_timeout(200)
+-    modal_closed_after_close = pg.evaluate("document.getElementById('fitnessCalcModal').classList.contains('hidden')")
+-    check('B: ✕ closes the modal', modal_closed_after_close)
+-
+-    # --- Scenario C: same flow from the 🧮 Fitness admin panel (different workspace view) ---
+-    pg.click('#fitnessAdminBtn'); pg.wait_for_timeout(300)
+-    pg.click('.tab-btn[data-tab="fitness"]'); pg.wait_for_timeout(200)
+-    pg.click('#adminOpenFitnessBtn'); pg.wait_for_timeout(400)
+-    opened_c = pg.evaluate("!document.getElementById('fitnessCalcModal').classList.contains('hidden')")
+-    check('C: button works while fitness approvals panel is open', opened_c)
+-    pg.keyboard.press('Escape'); pg.wait_for_timeout(200)
+-
+-    check('no page JS errors', len(errors) == 0)
+-    if errors: print('ERRORS:', errors[:5])
+-
+-b.close(); srv.shutdown()
+-fails = [n for n, c in results if not c]
+-print('\n%d/%d passed' % (len(results) - len(fails), len(results)))
+-sys.exit(1 if fails else 0)
+diff --git a/tmp/test/mock_supabase.js b/tmp/test/mock_supabase.js
+deleted file mode 100644
+index b03be91..0000000
+--- a/tmp/test/mock_supabase.js
++++ /dev/null
+@@ -1,93 +0,0 @@
+-// Minimal in-browser mock of the Supabase JS client (window.supabase) so the
+-// portal can be tested offline. Stores rows in memory per table.
+-(function () {
+-  const DB = {
+-    clients: [
+-      { id: 'c1', login_id: 'ALI-9786', name: 'Ali Khan', email: 'ali@example.com', phone: '971527739786', password_hint: 'AK@1234', active: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString() }
+-    ],
+-    client_settings: [{ id: 1, client_id: 'c1', rate_aed: 200, note: '' }],
+-    client_profiles: [],
+-    progress_entries: [],
+-    progress_approvals: [],
+-    profile_approvals: [],
+-    sessions: [],
+-    exercises: [{ id: 'e1', name: 'Bench Press', category: 'Chest', muscle_group: 'Chest', default_sets: 3, default_reps: '10', default_weight: '40', default_rest: '60', notes: '' }],
+-    client_exercises: [],
+-    workout_logs: [],
+-    daily_times: [],
+-    fitness_entries: [],
+-    fitness_audit_log: [],
+-    workout_edit_requests: [],
+-    admin_config: [{ id: 1, admin_login_id: 'TAS-Abhi', admin_password: 'Abhu@1818', archive_email: 'trainer@example.com' }],
+-    progress_reports: []
+-  };
+-  window.__MOCK_DB = DB;
+-
+-  function runQuery(table, op) {
+-    return {
+-      _filters: [], _order: null, _limit: null, _single: false,
+-      select(cols) { this._op = 'select'; return this; },
+-      insert(row) { this._op = 'insert'; this._row = row; return this; },
+-      update(row) { this._op = 'update'; this._row = row; return this; },
+-      delete() { this._op = 'delete'; return this; },
+-      upsert(row) { this._op = 'upsert'; this._row = row; return this; },
+-      eq(col, val) { this._filters.push([col, String(val)]); return this; },
+-      gte(col, v) { this._gte = [col, v]; return this; },
+-      lte(col, v) { this._lte = [col, v]; return this; },
+-      order(col, o) { this._order = [col, (o && o.ascending) !== false]; return this; },
+-      limit(n) { this._limit = n; return this; },
+-      single() { this._single = true; return this; },
+-      then(resolve, reject) {
+-        return this._exec().then(resolve, reject);
+-      },
+-      async _exec() {
+-        await new Promise(r => setTimeout(r, 5));
+-        const rows = DB[table];
+-        if (!rows) return { data: null, error: { code: '42P01', message: `Could not find the table 'public.${table}'` } };
+-        const match = (r) => this._filters.every(([c, v]) => String(r[c]) === v);
+-        if (this._op === 'insert') {
+-          const row = { id: 'x' + Math.random().toString(36).slice(2, 8), created_at: new Date().toISOString(), ...this._row };
+-          rows.push(row);
+-          return { data: row, error: null };
+-        }
+-        if (this._op === 'upsert') {
+-          const found = rows.find(match);
+-          if (found) Object.assign(found, this._row);
+-          else rows.push({ id: 'x' + Math.random().toString(36).slice(2, 8), ...this._row });
+-          return { data: this._row, error: null };
+-        }
+-        if (this._op === 'update') {
+-          rows.filter(match).forEach(r => Object.assign(r, this._row));
+-          return { data: null, error: null };
+-        }
+-        if (this._op === 'delete') {
+-          for (let i = rows.length - 1; i >= 0; i--) if (match(rows[i])) rows.splice(i, 1);
+-          return { data: null, error: null };
+-        }
+-        let out = rows.filter(match).slice();
+-        if (this._gte) out = out.filter(r => String(r[this._gte[0]]) >= this._gte[1]);
+-        if (this._lte) out = out.filter(r => String(r[this._lte[0]]) <= this._lte[1]);
+-        if (this._order) {
+-          const [col, asc] = this._order;
+-          out.sort((a, b) => String(a[col] ?? '').localeCompare(String(b[col] ?? '')) * (asc ? 1 : -1));
+-        }
+-        if (this._limit != null) out = out.slice(0, this._limit);
+-        if (this._single) return { data: out[0] || null, error: out[0] ? null : { message: 'no rows' } };
+-        return { data: out, error: null };
+-      }
+-    };
+-  }
+-
+-  window.supabase = {
+-    createClient: () => ({
+-      from: (t) => ({ select: (...a) => runQuery(t, 'select').select(...a),
+-                       insert: (r) => runQuery(t, 'insert').insert(r),
+-                       update: (r) => runQuery(t, 'update').update(r),
+-                       delete: () => runQuery(t, 'delete').delete(),
+-                       upsert: (r) => runQuery(t, 'upsert').upsert(r) }),
+-      channel: () => ({ on: () => ({ subscribe: () => {} }) }),
+-      removeChannel: () => {},
+-      functions: { invoke: async () => ({ data: null, error: null }) }
+-    })
+-  };
+-})();
+diff --git a/tmp/test/run_test.py b/tmp/test/run_test.py
+deleted file mode 100644
+index 0a5ab7a..0000000
+--- a/tmp/test/run_test.py
++++ /dev/null
+@@ -1,128 +0,0 @@
+-import sys, json
+-from playwright.sync_api import sync_playwright
+-
+-URL = "http://localhost:8137/index.html"
+-MOCK = "/workspace/tmp/test/mock_supabase.js"
+-
+-def run():
+-    results = []
+-    with sync_playwright() as p:
+-        browser = p.chromium.launch(args=["--no-sandbox"])
+-        page = browser.new_page()
+-        errors = []
+-        page.on("pageerror", lambda e: errors.append(str(e)))
+-        page.on("requestfailed", lambda r: errors.append("REQFAIL " + r.url))
+-        # Block real Supabase CDN + API so the mock is used and no network needed
+-        page.route("**/supabase-js**", lambda route: route.abort())
+-        page.goto(URL)
+-        page.add_script_tag(path=MOCK)
+-        page.wait_for_timeout(600)
+-        # Re-run init with mock present
+-        page.evaluate("window.initSupabase()")
+-        page.wait_for_timeout(800)
+-
+-        def check(name, ok):
+-            results.append((name, bool(ok)))
+-            print(("PASS  " if ok else "FAIL  ") + name)
+-
+-        # Login as admin
+-        page.fill("#loginIdInput", "TAS-Abhi")
+-        page.fill("#passwordInput", "Abhu@1818")
+-        page.click("#unifiedLoginBtn")
+-        page.wait_for_timeout(300)
+-        check("admin dashboard visible", page.is_visible("#adminDashboard"))
+-
+-        # Workspace tab buttons work?
+-        page.click("#adminTabClientsBtn")
+-        page.wait_for_timeout(200)
+-        check("clients workspace opens", page.is_visible("#adminWorkspaceClients"))
+-        check("home workspace hidden", not page.is_visible("#adminWorkspaceHome"))
+-        page.click("#adminTabHomeBtn")
+-        page.wait_for_timeout(200)
+-        check("home workspace opens back", page.is_visible("#adminWorkspaceHome"))
+-
+-        # Home stats reflect existing client (mock has 1 client)
+-        total = page.text_content("#hsTotalClients")
+-        active = page.text_content("#hsActiveClients")
+-        check(f"home stats show clients (total={total}, active={active})", total == "1" and active == "1")
+-        badge = page.text_content("#adminClientsTabCount")
+-        check(f"clients tab badge count = {badge}", badge == "1")
+-
+-        # Create a client from Home tab
+-        page.click("#adminTabHomeBtn")
+-        page.fill("#newClientName", "Test Client")
+-        page.fill("#newClientPhone", "971500001111")
+-        page.fill("#newClientRate", "250")
+-        page.click("#createClientBtn")
+-        page.wait_for_timeout(600)
+-        status = page.text_content("#createClientStatus") or ""
+-        check("create client success status", "created" in status.lower())
+-        total = page.text_content("#hsTotalClients")
+-        check(f"stats updated after create (total={total})", total == "2")
+-
+-        # Go to Clients tab -> list should render
+-        page.click("#adminTabClientsBtn")
+-        page.wait_for_timeout(300)
+-        items = page.query_selector_all(".client-item")
+-        check(f"client list rendered ({len(items)} items)", len(items) == 2)
+-
+-        # Click first client -> detail panel opens
+-        if items:
+-            items[0].click()
+-            page.wait_for_timeout(300)
+-            check("client detail panel opens", page.is_visible("#clientDetailPanel"))
+-            # inner tabs
+-            page.click('.tab-btn[data-tab="tracker"]')
+-            page.wait_for_timeout(200)
+-            check("sessions tab shows", page.is_visible("#tab-tracker") and not page.is_visible("#tab-reminder"))
+-            page.click('.tab-btn[data-tab="plan"]')
+-            page.wait_for_timeout(200)
+-            check("plan tab shows", page.is_visible("#tab-plan"))
+-            page.click('.tab-btn[data-tab="progress"]')
+-            page.wait_for_timeout(200)
+-            check("progress tab shows", page.is_visible("#tab-progress"))
+-            page.click('.tab-btn[data-tab="fitness"]')
+-            page.wait_for_timeout(200)
+-            check("fitness tab shows", page.is_visible("#tab-fitness"))
+-            page.click('.tab-btn[data-tab="reminder"]')
+-            page.wait_for_timeout(200)
+-            check("message tab shows", page.is_visible("#tab-reminder"))
+-
+-        # Top buttons
+-        for btn, panel in [("approvalsBtn", "#approvalsPanel"), ("exerciseLibraryBtn", "#libraryPanel"),
+-                           ("openSettingsBtn", "#settingsPanel"), ("classTimesBtn", "#classTimesPanel"),
+-                           ("fitnessAdminBtn", "#fitnessPanel"), ("reportsBtn", "#reportsPanel")]:
+-            page.click("#" + btn)
+-            page.wait_for_timeout(250)
+-            vis = page.is_visible(panel)
+-            check(f"{btn} opens {panel}", vis)
+-            if vis:
+-                page.click(f'[data-close-panel="{panel[1:]}"]')
+-                page.wait_for_timeout(150)
+-                check(f"{panel} closes via X", not page.is_visible(panel))
+-
+-        # Refresh button
+-        page.click("#adminRefreshBtn")
+-        page.wait_for_timeout(600)
+-        check("refresh works", True)
+-
+-        # Client login flow
+-        page.click("#adminLogoutBtn"); page.wait_for_timeout(100); page.click("#adminLogoutBtn")
+-        page.wait_for_timeout(200)
+-        check("logout returns to login", page.is_visible("#loginCard"))
+-        page.fill("#loginIdInput", "ALI-9786")
+-        page.fill("#passwordInput", "AK@1234")
+-        page.click("#unifiedLoginBtn")
+-        page.wait_for_timeout(400)
+-        check("client dashboard opens", page.is_visible("#clientDashboard"))
+-        page.click('#clientTabsBar .tab-btn[data-ctab="history"]' if page.query_selector('#clientTabsBar') else '.tab-btn[data-ctab="history"]')
+-        page.wait_for_timeout(200)
+-        check("client history tab shows", page.is_visible("#ctab-history"))
+-
+-        print("\nPAGE ERRORS:", json.dumps(errors[:10], indent=1))
+-        fails = [n for n, ok in results if not ok]
+-        print(f"\nSUMMARY: {len(results)-len(fails)}/{len(results)} passed")
+-        browser.close()
+-        return 1 if fails else 0
+-
+-sys.exit(run())
+diff --git a/tmp/test/serve.sh b/tmp/test/serve.sh
+deleted file mode 100644
+index 753047c..0000000
+--- a/tmp/test/serve.sh
++++ /dev/null
+@@ -1,3 +0,0 @@
+-#!/bin/bash
+-cd /workspace && python3 -m http.server 8137 >/tmp/http8137.log 2>&1 &
+-echo $! > /tmp/http8137.pid
+diff --git a/tmp/test/verify_fixes.py b/tmp/test/verify_fixes.py
+deleted file mode 100644
+index 3dd83d1..0000000
+--- a/tmp/test/verify_fixes.py
++++ /dev/null
+@@ -1,111 +0,0 @@
+-import sys
+-from playwright.sync_api import sync_playwright
+-
+-URL = "http://localhost:8137/index.html"
+-MOCK = "/workspace/tmp/test/mock_supabase.js"
+-results = []
+-def check(name, ok):
+-    results.append((name, bool(ok)))
+-    print(("PASS  " if ok else "FAIL  ") + name)
+-
+-with sync_playwright() as p:
+-    browser = p.chromium.launch(args=["--no-sandbox"])
+-    page = browser.new_page()
+-    errors = []
+-    page.on("pageerror", lambda e: errors.append(str(e)))
+-    page.route("**/supabase-js**", lambda route: route.abort())
+-    page.goto(URL)
+-    page.add_script_tag(path=MOCK)
+-    page.wait_for_timeout(600)
+-    page.evaluate("window.initSupabase()")
+-    page.wait_for_timeout(800)
+-
+-    # ---------- ADMIN: fitness calculator opens ----------
+-    page.fill("#loginIdInput", "TAS-Abhi"); page.fill("#passwordInput", "Abhu@1818")
+-    page.click("#unifiedLoginBtn"); page.wait_for_timeout(300)
+-    page.click("#adminTabClientsBtn"); page.wait_for_timeout(200)
+-    page.click(".client-item"); page.wait_for_timeout(300)          # select first client
+-    page.click('button[data-tab="fitness"]'); page.wait_for_timeout(300)
+-    check("admin fitness tab shows Add button", page.is_visible("#adminOpenFitnessBtn"))
+-    check("modal hidden before click", page.evaluate("document.getElementById('fitnessCalcModal').classList.contains('hidden')"))
+-    page.click("#adminOpenFitnessBtn"); page.wait_for_timeout(300)
+-    check("ADMIN calculator modal OPENS", not page.evaluate("document.getElementById('fitnessCalcModal').classList.contains('hidden')"))
+-    check("admin-only buttons visible", page.is_visible("#fcSaveAdminBtn"))
+-    check("client-only buttons hidden", not page.is_visible("#fcSubmitBtn"))
+-    # fill numbers -> live results render
+-    page.fill("#fcWeight", "80"); page.fill("#fcHeight", "175"); page.fill("#fcAge", "30")
+-    page.wait_for_timeout(200)
+-    check("live results rendered in modal", len(page.text_content("#fcResults")) > 50)
+-    # save for client
+-    page.click("#fcSaveAdminBtn"); page.wait_for_timeout(500)
+-    st = page.text_content("#fcFormStatus") or ""
+-    check("admin save success status", "Saved" in st or "updated" in st.lower())
+-    check("entry row in admin list", page.evaluate("document.querySelectorAll('#adminClientFitnessList .fitness-history-item').length") >= 1)
+-    page.click("#fcCloseBtn"); page.wait_for_timeout(200)
+-    check("modal closes via X", page.evaluate("document.getElementById('fitnessCalcModal').classList.contains('hidden')"))
+-
+-    # edit existing entry from history
+-    page.click("#adminClientFitnessList .fa-edit-btn"); page.wait_for_timeout(300)
+-    check("edit reopens modal prefilled", page.input_value("#fcWeight") == "80")
+-    page.click("#fitnessCalcModal", position={"x": 5, "y": 5}); page.wait_for_timeout(200)
+-    check("backdrop click closes modal", page.evaluate("document.getElementById('fitnessCalcModal').classList.contains('hidden')"))
+-
+-    # ---------- ADMIN: schedule request approval flow ----------
+-    # simulate a pending client_request row directly in the mock DB then load approvals
+-    page.evaluate("""() => {
+-      window.__MOCK_DB.client_requests.push({ id:'r1', client_id:'c1', session_date:'2026-10-01',
+-        request_type:'time', message:'Move to 6 PM', status:'pending',
+-        requested_at:new Date().toISOString() });
+-    }""")
+-    page.click("#adminRefreshBtn"); page.wait_for_timeout(800)
+-    page.click("#approvalsBtn"); page.wait_for_timeout(400)
+-    found = page.evaluate("""() => {
+-      const el = document.getElementById('crn-r1');
+-      return !!el;
+-    }""")
+-    check("schedule request appears in approvals", found)
+-    if not found:
+-        print("DEBUG approvals html:", (page.text_content("#approvalsPanel") or "")[:800])
+-        print("DEBUG clientRequests:", page.evaluate("JSON.stringify(APP_STATE.clientRequests)"))
+-    if found:
+-        page.fill("#crn-r1", "Sure, done")
+-        page.click('[data-cr-id="r1"].approve, [data-cr-id="r1"]')  # best-effort selector
+-        page.wait_for_timeout(500)
+-        status = page.evaluate("window.__MOCK_DB.client_requests.find(r=>r.id==='r1').status")
+-        check(f"approve updates DB row (status={status})", status == "approved")
+-
+-    # ---------- CLIENT: send request + open calculator ----------
+-    page.evaluate("unifiedLogout && unifiedLogout()"); page.wait_for_timeout(300)
+-    page.fill("#loginIdInput", "ALI-9786"); page.fill("#passwordInput", "AK@1234")
+-    page.click("#unifiedLoginBtn"); page.wait_for_timeout(400)
+-    check("client dashboard opens", page.is_visible("#clientDashboard"))
+-    page.click('button[data-ctab="fitness"]'); page.wait_for_timeout(300)
+-    check("client fitness tab shows Open Calculator", page.is_visible("#clientOpenFitnessBtn"))
+-    page.click("#clientOpenFitnessBtn"); page.wait_for_timeout(300)
+-    check("CLIENT calculator modal OPENS", not page.evaluate("document.getElementById('fitnessCalcModal').classList.contains('hidden')"))
+-    check("client-only buttons visible", page.is_visible("#fcSubmitBtn"))
+-    check("admin-only buttons hidden", not page.is_visible("#fcSaveAdminBtn"))
+-    page.fill("#fcWeight", "75"); page.fill("#fcHeight", "170"); page.fill("#fcAge", "28")
+-    page.click("#fcSubmitBtn"); page.wait_for_timeout(600)
+-    st = page.text_content("#fcFormStatus") or ""
+-    check("client submit success", "Sent" in st or "approval" in st.lower())
+-    page.click("#fcCloseBtn"); page.wait_for_timeout(200)
+-
+-    # client sends a schedule request through the real UI
+-    page.click('button[data-ctab="home"]'); page.wait_for_timeout(300)
+-    page.evaluate("openClientRequestModal(null, 'time')"); page.wait_for_timeout(200)
+-    page.fill("#crMessage", "Can we shift tomorrow's class to 7 AM?")
+-    page.click("#sendClientRequestBtn"); page.wait_for_timeout(700)
+-    n = page.evaluate("window.__MOCK_DB.client_requests.filter(r=>r.message && r.message.indexOf('7 AM')>=0).length")
+-    check("client request inserted into DB", n == 1)
+-    rid = page.evaluate("""() => {
+-      const rows = window.__MOCK_DB.client_requests.filter(r=>r.message && r.message.indexOf('7 AM')>=0);
+-      return rows.length ? String(rows[0].id) : '';
+-    }""")
+-    cached = page.evaluate("String(APP_STATE.clientRequests.some(r=>String(r.id)==='%s'))" % rid)
+-    check("real uuid id cached locally (not 'local-' fake)", cached == "true" and not rid.startswith("local-"))
+-
+-    print("\nPAGE ERRORS:", [e for e in errors if "googleusercontent" not in e and "drive.google" not in e])
+-    fails = [n for n, ok in results if not ok]
+-    print(f"\nSUMMARY: {len(results)-len(fails)}/{len(results)} passed")
+-    sys.exit(1 if fails else 0)

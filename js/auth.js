@@ -1,3 +1,19 @@
+// Smooth card-to-card navigation (login ⇄ dashboards).
+// Hides the outgoing cards and reveals the target one; the CSS rule
+// `.dash-card:not(.hidden){animation:dashIn …}` plays a short rise+fade.
+// We force-restart the animation so it also replays on logout→login.
+window.transitionToCard = function (target, hideIds) {
+  (hideIds || []).forEach(id => { const el = $(id); if (el) el.classList.add('hidden'); });
+  if (!target) return;
+  target.classList.remove('hidden');
+  try {
+    target.style.animation = 'none';
+    void target.offsetWidth;            // reflow → restart keyframes
+    target.style.animation = '';
+  } catch (e) {}
+  try { window.scrollTo({ top: 0, behavior: (matchMedia('(prefers-reduced-motion:reduce)').matches ? 'auto' : 'smooth') }); } catch (e) { window.scrollTo(0, 0); }
+};
+
 window.handleUnifiedLogin = async function () {
   const loginId = $('loginIdInput').value.trim();
   const password = $('passwordInput').value.trim();
@@ -18,9 +34,7 @@ window.handleUnifiedLogin = async function () {
 
 window.openAdminDashboard = function () {
   APP_STATE.loggedInClient = null;
-  $('loginCard').classList.add('hidden');
-  $('clientDashboard').classList.add('hidden');
-  $('adminDashboard').classList.remove('hidden');
+  transitionToCard($('adminDashboard'), ['loginCard', 'clientDashboard']);
   $('adminDisplayId').textContent = APP_STATE.adminConfig.admin_login_id;
   clearStatus($('unifiedStatus'));
   renderClientList();
@@ -38,9 +52,7 @@ window.openAdminDashboard = function () {
 
 window.openClientDashboard = function (c) {
   APP_STATE.loggedInClient = c;
-  $('loginCard').classList.add('hidden');
-  $('adminDashboard').classList.add('hidden');
-  $('clientDashboard').classList.remove('hidden');
+  transitionToCard($('clientDashboard'), ['loginCard', 'adminDashboard']);
   $('welcomeClientName').textContent = c.name;
   clearStatus($('unifiedStatus'));
   renderClientDashboard(c);
@@ -92,9 +104,7 @@ window.refreshClientPortalViews = window.refreshClientPortalViews || function ()
 window.unifiedLogout = function () {
   APP_STATE.loggedInClient = null;
   APP_STATE.selectedClientId = null;
-  $('loginCard').classList.remove('hidden');
-  $('clientDashboard').classList.add('hidden');
-  $('adminDashboard').classList.add('hidden');
+  transitionToCard($('loginCard'), ['clientDashboard', 'adminDashboard']);
   $('loginIdInput').value = '';
   $('passwordInput').value = '';
   clearStatus($('unifiedStatus'));

@@ -945,6 +945,89 @@ details[open].howto-card .howto-summary::after{transform:rotate(180deg);}
 @media (max-width:600px){ #updateSitePopup .us-popup-box { padding:1rem; } }
 
 /* ============================================================
+   PROFESSIONAL FINISHING TOUCHES (v7)
+   ------------------------------------------------------------
+   • PWA: install chip styling + standalone layout tweaks
+   • Embedded SVG logo lockup (replaces emoji watermarks)
+   • Display typeface (Sora) for headings & brand moments
+   • Consistent :focus-visible rings on every interactive element
+   • Print stylesheet for clean session/progress handouts
+   • Smooth login → dashboard cross-fade transition
+   ============================================================ */
+
+/* ---- Display typography: Sora for headings, Inter for body ---- */
+:root{--font-display:'Sora','Inter','Segoe UI',system-ui,sans-serif;}
+h1,h2,h3,.dash-title,.section-card-title,.modal-header h3,
+.admin-section-title,.stat-tile-value,.rp-kpi-value,
+.client-upcoming-title,.reminder-section h4{font-family:var(--font-display);}
+h2,.modal-header h3{letter-spacing:-0.025em;}
+.app-footer-brand{font-family:var(--font-display);}
+
+/* ---- SVG logo lockup (login card corner) ---- */
+.login-logo-corner .logo-lockup{position:absolute;inset:0;width:100%;height:100%;color:var(--brand-800);z-index:0;}
+.login-logo-corner img{position:relative;z-index:1;}
+/* while the Drive photo loads (or if it fails), the crisp SVG lockup shows */
+.login-logo-corner img[src=""],.login-logo-corner img:not([src]){visibility:hidden;}
+.footer-logo{width:150px;height:40px;color:var(--brand-700);display:inline-block;vertical-align:middle;}
+[data-theme="dark"] .footer-logo,[data-theme="dark"] .login-logo-corner .logo-lockup{color:var(--brand-800);}
+
+/* ---- Background watermark: SVG mark first (always renders), photo on top when loaded ---- */
+#bgWatermark .wm-svg{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:min(72vmin,640px);height:auto;opacity:.07;filter:saturate(.85);}
+#bgWatermark img{position:relative;}
+[data-theme="dark"] #bgWatermark .wm-svg{opacity:.05;}
+
+/* ---- Dashboard avatars now host the SVG mark ---- */
+.dash-avatar svg.avatar-mark{width:70%;height:70%;border-radius:.35rem;}
+
+/* ---- PWA install chip ---- */
+.pwa-install-btn{margin-top:.4rem;border-style:dashed;font-size:.75rem;min-height:36px;}
+@media (display-mode:standalone){ .pwa-install-btn{display:none !important;} }
+
+/* ---- Standalone app window: reclaim edge space ---- */
+@media (display-mode:standalone){
+  body{padding-top:.4rem;}
+  .card{box-shadow:var(--shadow-md);}
+}
+
+/* ---- Consistent focus-visible ring on ALL interactive elements ---- */
+textarea:focus-visible,.copyable:focus-visible,summary:focus-visible,
+[role="button"]:focus-visible,.tab-btn:focus-visible,.client-item:focus-visible{
+  outline:3px solid rgba(43,110,158,.45);outline-offset:2px;border-radius:inherit;}
+:focus-visible{outline-color:rgba(43,110,158,.55);}
+@supports selector(:has(*)){
+  .btn-primary:focus-visible{outline-color:rgba(255,255,255,.85);box-shadow:0 0 0 5px rgba(31,78,61,.35);}
+}
+
+/* ---- Login → dashboard smooth transition ---- */
+/* The dashboards are revealed by removing .hidden; a short rise+fade makes
+   the switch feel like navigation instead of a DOM swap. */
+.dash-card:not(.hidden){animation:dashIn .38s var(--ease) both;}
+#loginCard:not(.hidden){animation:fadeInUp .3s var(--ease) both;}
+@keyframes dashIn{from{opacity:0;transform:translateY(14px) scale(.995);}to{opacity:1;transform:none;}}
+@keyframes fadeInUp{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:none;}}
+@media (prefers-reduced-motion:reduce){
+  .dash-card:not(.hidden),#loginCard:not(.hidden){animation:none;}
+}
+
+/* ---- Print stylesheet: clean session / progress handouts ---- */
+@media print{
+  @page{margin:14mm;}
+  html,body{background:#fff !important;color:#000 !important;font-size:11pt;overflow:visible !important;}
+  #bgWatermark,.theme-toggle,#themeToggleBtn,#loginCard,.app-footer,#toastContainer,
+  #updateSitePopup,.modal-overlay,.btn-primary,.btn-secondary,.btn-small,.btn-admin,
+  button,input,select,textarea,.howto-card,.client-upcoming-hint,.status-msg,
+  .cloud-status,.pwa-install-btn,.no-print{display:none !important;}
+  .unified-wrap{max-width:100%;}
+  .card,.dash-card{box-shadow:none !important;border:1px solid #bbb !important;padding:0 !important;break-inside:auto;}
+  .dash-header{border-bottom:2px solid #000;background:none !important;}
+  /* print whichever dashboard is currently visible, even though its sibling
+     is hidden — visibility trick beats display:none ancestors */
+  .session-card,.history-item,.month-summary-day,.stat-tile,.section-card{break-inside:avoid;border:1px solid #ccc !important;background:#fff !important;color:#000 !important;}
+  a[href]::after{content:"";}
+  *{color:#000 !important;text-shadow:none !important;box-shadow:none !important;}
+}
+
+/* ============================================================
    📨 CLIENT REQUESTS (editable request → trainer approval)
    ============================================================ */
 .btn-request-edit{background:var(--brand-50,#eef4ff);border-color:var(--brand-300,#bcd4ff);color:var(--brand-700,#1a4fbf);}
