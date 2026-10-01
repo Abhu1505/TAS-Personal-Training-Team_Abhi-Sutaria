@@ -117,15 +117,20 @@
 
 <div class="unified-wrap">
   <div class="card login-card" id="loginCard">
-    <!-- Two brand marks, stacked vertically so they NEVER overlap:
-         1) crisp SVG "TAS Personal Training" wordmark (always visible)
-         2) the gym photo below it (loads from Drive; hidden if unavailable) -->
-    <div class="login-logo-corner">
-      <div class="logo-lockup-wrap">
-        <svg class="logo-lockup" viewBox="0 0 236 64" role="img" aria-label="TAS Personal Training"><use href="#tas-lockup"/></svg>
-      </div>
+    <!-- Brand mark: ONE compact header row — photo on the LEFT (slightly
+         raised), wordmark + tagline stacked on the RIGHT. This replaces the
+         old top-right corner block that pushed the login card's content far
+         down the page on phones (users had to scroll up past the logo just
+         to reach the form). Hidden entirely when logged in (only #loginCard
+         shows at a time), and collapses to a slim centered strip on narrow
+         screens so the form is always above the fold. -->
+    <div class="login-brand-row">
       <div class="logo-photo-wrap">
         <img data-gdrive-id="1N651kHeVrz6HEhAc1cRRKGx2DtS-IdX0" alt="TAS Personal Training logo photo">
+      </div>
+      <div class="login-brand-text">
+        <svg class="logo-lockup" viewBox="0 0 236 64" role="img" aria-label="TAS Personal Training"><use href="#tas-lockup"/></svg>
+        <span class="login-brand-tag">Coaching portal · Dubai, UAE</span>
       </div>
     </div>
     <div class="login-head">
@@ -596,7 +601,6 @@
     </div>
   </div><!-- /adminWorkspaceClients -->
   </div>
-</div>
 
 <!-- MODALS -->
 <div id="dayLogModal" class="modal-overlay hidden">
@@ -823,31 +827,41 @@
   </div>
 </div>
 
+</div><!-- /unified-wrap -->
+
+<!-- ===== Footer: professional compact layout (brand + nav columns + legal bar) ===== -->
 <footer class="app-footer">
-  <span class="app-footer-brand"><svg class="footer-logo" viewBox="0 0 236 64" role="img" aria-label="TAS Personal Training">
-    <!-- self-contained lockup: renders identically in every theme (no white-on-white) -->
-    <defs>
-      <linearGradient id="tasFooterMarkG" x1="0" y1="0" x2="1" y2="1">
-        <stop offset="0" stop-color="#1f4e3d"/><stop offset="1" stop-color="#38826a"/>
-      </linearGradient>
-    </defs>
-    <rect width="64" height="64" rx="15" fill="url(#tasFooterMarkG)"/>
-    <g stroke="#ffffff" stroke-width="4.6" stroke-linecap="round" fill="#ffffff">
-      <line x1="22" y1="20" x2="42" y2="20"/>
-      <rect x="13.5" y="13.5" width="7" height="13" rx="2.4" stroke="none"/>
-      <rect x="43.5" y="13.5" width="7" height="13" rx="2.4" stroke="none"/>
-    </g>
-    <text x="32" y="49" text-anchor="middle" font-family="Sora, Inter, Arial, sans-serif" font-weight="800" font-size="17" letter-spacing="1" fill="#ffffff">TAS</text>
-    <text x="78" y="30" font-family="Sora, Inter, Arial, sans-serif" font-weight="800" font-size="22" letter-spacing="-0.5" fill="#143d2c">TAS</text>
-    <text x="78" y="50" font-family="Inter, Arial, sans-serif" font-weight="600" font-size="13" letter-spacing="0.2" fill="#143d2c" opacity="0.75">Personal Training</text>
-  </svg></span>
-  <div class="app-footer-main">
-    <!-- Footer navigation columns: About / Quick Links / Legal / Contact -->
-    <nav class="footer-nav" aria-label="Footer navigation">
-      <div class="footer-col">
-        <h4>About TAS</h4>
-        <p>Team Abhi Sutaria — certified personal training in Dubai, UAE. Customised workout plans, progress tracking and 1-on-1 coaching, all in one portal.</p>
+  <div class="footer-top">
+    <div class="footer-brand-col">
+      <span class="app-footer-brand"><svg class="footer-logo" viewBox="0 0 236 64" role="img" aria-label="TAS Personal Training">
+        <!-- self-contained lockup: renders identically in every theme (no white-on-white) -->
+        <defs>
+          <linearGradient id="tasFooterMarkG" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#1f4e3d"/><stop offset="1" stop-color="#38826a"/>
+          </linearGradient>
+        </defs>
+        <rect width="64" height="64" rx="15" fill="url(#tasFooterMarkG)"/>
+        <g stroke="#ffffff" stroke-width="4.6" stroke-linecap="round" fill="#ffffff">
+          <line x1="22" y1="20" x2="42" y2="20"/>
+          <rect x="13.5" y="13.5" width="7" height="13" rx="2.4" stroke="none"/>
+          <rect x="43.5" y="13.5" width="7" height="13" rx="2.4" stroke="none"/>
+        </g>
+        <text x="32" y="49" text-anchor="middle" font-family="Sora, Inter, Arial, sans-serif" font-weight="800" font-size="17" letter-spacing="1" fill="#ffffff">TAS</text>
+        <text x="78" y="30" font-family="Sora, Inter, Arial, sans-serif" font-weight="800" font-size="22" letter-spacing="-0.5" fill="#143d2c">TAS</text>
+        <text x="78" y="50" font-family="Inter, Arial, sans-serif" font-weight="600" font-size="13" letter-spacing="0.2" fill="#143d2c" opacity="0.75">Personal Training</text>
+      </svg></span>
+      <p class="footer-tagline">Certified personal training in Dubai — customised plans, progress tracking and 1-on-1 coaching in one portal.</p>
+      <a class="footer-follow-link" href="https://www.instagram.com/teamabhisutaria?stkn=d2FoMmxiZ3A2eXhz" target="_blank" rel="noopener noreferrer">Follow @teamabhisutaria for daily workouts &amp; client results →</a>
+      <div class="admin-contact footer-contact" id="footerAdminContact">
+        <div class="admin-contact-title">Need help? Contact the admin</div>
+        <div class="admin-contact-row">
+          <a class="btn-contact-email" href="mailto:sutariaabhi98@gmail.com" title="Email the admin">✉️ Email</a>
+          <a class="btn-contact-instagram" href="https://www.instagram.com/teamabhisutaria?stkn=d2FoMmxiZ3A2eXhz" target="_blank" rel="noopener noreferrer" title="Admin on Instagram">@teamabhisutaria</a>
+          <a class="btn-contact-whatsapp" href="https://wa.me/971521391505" target="_blank" rel="noopener noreferrer" title="WhatsApp the admin: +971 52 139 1505">📱 WhatsApp</a>
+        </div>
       </div>
+    </div>
+    <nav class="footer-nav" aria-label="Footer navigation">
       <div class="footer-col">
         <h4>Quick Links</h4>
         <a href="#loginCard" data-scroll>🔐 Login</a>
@@ -868,19 +882,12 @@
         <a href="mailto:sutariaabhi98@gmail.com">✉️ sutariaabhi98@gmail.com</a>
         <a href="https://wa.me/971521391505" target="_blank" rel="noopener noreferrer">📱 +971 52 139 1505</a>
         <a href="https://www.instagram.com/teamabhisutaria?stkn=d2FoMmxiZ3A2eXhz" target="_blank" rel="noopener noreferrer">📸 @teamabhisutaria</a>
-        <span class="footer-hours">🕐 Coaching hours: daily, 6:00 – 22:00 (GST)</span>
+        <span class="footer-hours">🕐 Daily, 6:00 – 22:00 (GST)</span>
       </div>
     </nav>
+  </div>
+  <div class="footer-bottom">
     <span class="app-footer-copy"><span id="footerAppUrl" title="Portal link sent in WhatsApp messages">—</span> · © <span id="footerYear">2026</span> Team Abhi Sutaria · Dubai, UAE · All rights reserved</span>
-    <!-- Admin contact — same Email / Instagram / WhatsApp actions as the login screen -->
-    <div class="admin-contact footer-contact" id="footerAdminContact">
-      <div class="admin-contact-title">Need help? Contact the admin</div>
-      <div class="admin-contact-row">
-        <a class="btn-contact-email" href="mailto:sutariaabhi98@gmail.com" title="Email the admin">✉️ Email</a>
-        <a class="btn-contact-instagram" href="https://www.instagram.com/teamabhisutaria?stkn=d2FoMmxiZ3A2eXhz" target="_blank" rel="noopener noreferrer" title="Admin on Instagram">@teamabhisutaria</a>
-        <a class="btn-contact-whatsapp" href="https://wa.me/971521391505" target="_blank" rel="noopener noreferrer" title="WhatsApp the admin: +971 52 139 1505">📱 WhatsApp</a>
-      </div>
-    </div>
   </div>
 </footer>
 
@@ -968,10 +975,10 @@
   document.addEventListener('click', function (e) {
     var link = e.target.closest ? e.target.closest('.footer-nav a') : null;
     if (!link) return;
+    e.preventDefault(); // stop '#' links from jumping the page to the top on phones
     var modalId = link.getAttribute('data-open-modal');
-    if (modalId) { e.preventDefault(); openFooterTarget(modalId); return; }
+    if (modalId) { openFooterTarget(modalId); return; }
     if (link.hasAttribute('data-scroll')) {
-      e.preventDefault();
       var t = document.getElementById((link.getAttribute('href') || '').replace('#', ''));
       if (t) t.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
