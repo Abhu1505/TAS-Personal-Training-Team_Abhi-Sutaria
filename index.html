@@ -9,10 +9,42 @@
 <meta name="theme-color" content="#0b1822" media="(prefers-color-scheme: dark)">
 <meta property="og:title" content="TAS Personal Training">
 <meta property="og:description" content="Track sessions, workouts and progress with your trainer.">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%92%AA%3C/text%3E%3C/svg%3E">
+<meta property="og:image" content="icons/icon-512.png">
+<!-- PWA / installable app -->
+<meta name="application-name" content="TAS Training">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="TAS Training">
+<link rel="manifest" href="manifest.webmanifest">
+<!-- Embedded SVG logo lockup — used as favicon, app icon and watermark (no emoji) -->
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none" aria-hidden="true">
+  <symbol id="tas-mark" viewBox="0 0 64 64">
+    <defs>
+      <linearGradient id="tasMarkG" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#1f4e3d"/><stop offset="1" stop-color="#38826a"/>
+      </linearGradient>
+    </defs>
+    <rect width="64" height="64" rx="15" fill="url(#tasMarkG)"/>
+    <!-- dumbbell -->
+    <g stroke="#ffffff" stroke-width="4.6" stroke-linecap="round" fill="#ffffff">
+      <line x1="22" y1="20" x2="42" y2="20"/>
+      <rect x="13.5" y="13.5" width="7" height="13" rx="2.4" stroke="none"/>
+      <rect x="43.5" y="13.5" width="7" height="13" rx="2.4" stroke="none"/>
+    </g>
+    <text x="32" y="49" text-anchor="middle" font-family="Sora, Inter, Arial, sans-serif" font-weight="800" font-size="17" letter-spacing="1" fill="#ffffff">TAS</text>
+  </symbol>
+  <symbol id="tas-lockup" viewBox="0 0 236 64">
+    <use href="#tas-mark" width="64" height="64"/>
+    <text x="78" y="30" font-family="Sora, Inter, Arial, sans-serif" font-weight="800" font-size="22" letter-spacing="-0.5" fill="currentColor">TAS</text>
+    <text x="78" y="50" font-family="Inter, Arial, sans-serif" font-weight="600" font-size="13" letter-spacing="0.2" fill="currentColor" opacity="0.75">Personal Training</text>
+  </symbol>
+</svg>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%231f4e3d'/%3E%3Cstop offset='1' stop-color='%2338826a'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='64' height='64' rx='15' fill='url(%23g)'/%3E%3Cg stroke='%23fff' stroke-width='4.6' stroke-linecap='round' fill='%23fff'%3E%3Cline x1='22' y1='20' x2='42' y2='20'/%3E%3Crect x='13.5' y='13.5' width='7' height='13' rx='2.4' stroke='none'/%3E%3Crect x='43.5' y='13.5' width='7' height='13' rx='2.4' stroke='none'/%3E%3C/g%3E%3Ctext x='32' y='49' text-anchor='middle' font-family='Arial,sans-serif' font-weight='800' font-size='17' letter-spacing='1' fill='%23fff'%3ETAS%3C/text%3E%3C/svg%3E">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <link rel="stylesheet" href="css/styles.css">
 <script>/* Pre-paint theme: honour manual override, else auto by local sunrise/sunset (Dubai fallback until geolocation resolves). */
@@ -53,12 +85,14 @@
 <body>
 
 <div id="bgWatermark" aria-hidden="true">
+  <svg class="wm-svg" viewBox="0 0 64 64"><use href="#tas-mark"/></svg>
   <img data-gdrive-id="1N651kHeVrz6HEhAc1cRRKGx2DtS-IdX0" data-gdrive-hide-fallback="1" alt="">
 </div>
 
 <div class="unified-wrap">
   <div class="card login-card" id="loginCard">
     <div class="login-logo-corner">
+      <svg class="logo-lockup" viewBox="0 0 236 64" role="img" aria-label="TAS Personal Training"><use href="#tas-lockup"/></svg>
       <img data-gdrive-id="1N651kHeVrz6HEhAc1cRRKGx2DtS-IdX0" alt="Logo">
     </div>
     <div class="login-head">
@@ -84,7 +118,7 @@
   <div class="card hidden dash-card client-dash" id="clientDashboard">
     <div class="dash-header">
       <div class="dash-identity">
-        <span class="dash-avatar" aria-hidden="true">💪</span>
+        <span class="dash-avatar" aria-hidden="true"><svg viewBox="0 0 64 64" class="avatar-mark"><use href="#tas-mark"/></svg></span>
         <div>
           <div class="dash-title">Welcome back, <span id="welcomeClientName">Client</span></div>
           <div class="dash-subtitle">Your personal training portal · TAS</div>
@@ -705,7 +739,7 @@
 </div>
 
 <footer class="app-footer">
-  <span class="app-footer-brand">💪 TAS Personal Training</span>
+  <span class="app-footer-brand"><svg class="footer-logo" viewBox="0 0 236 64" role="img" aria-label="TAS Personal Training"><use href="#tas-lockup"/></svg></span>
   <span class="app-footer-copy"><span id="footerAppUrl" title="Portal link sent in WhatsApp messages">—</span> · © <span id="footerYear">2026</span> · All rights reserved</span>
 </footer>
 
@@ -737,6 +771,7 @@
 <script src="js/workspace.js"></script>
 <script src="js/wipe.js"></script>
 <script src="js/update-site.js"></script>
+<script src="js/pwa.js"></script>
 <script src="js/main.js"></script>
 
 
