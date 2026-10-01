@@ -44,6 +44,9 @@
     clearTimeout(_timer);
     _timer = setTimeout(async () => {
       if (window._liveSyncLocalWrite) return;
+      // Instant alert check (beep + popup + badge) when a remote change
+      // arrives via Realtime — no need to wait for the next 60s poll.
+      try { if (typeof window.notifyFromRealtime === 'function') window.notifyFromRealtime(); } catch (e) {}
       try {
         _lastRemoteReloadAt = Date.now();
         await loadAllData(); // also re-renders roster + client portal views

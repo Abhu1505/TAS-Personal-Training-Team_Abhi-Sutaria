@@ -120,6 +120,11 @@ window.refreshClientPortalViews = window.refreshClientPortalViews || function ()
 window.unifiedLogout = function () {
   APP_STATE.loggedInClient = null;
   APP_STATE.selectedClientId = null;
+  // Stop the alert polling loop and silence any pending badge.
+  if (APP_STATE.notificationPollHandle) { clearInterval(APP_STATE.notificationPollHandle); APP_STATE.notificationPollHandle = null; }
+  APP_STATE.clientSnapshot = null;
+  APP_STATE.lastSeenApprovalCount = 0;
+  try { clearAlertBadge(); } catch (e) {}
   // Forget this device — next open shows the login screen again.
   if (typeof tasClearSession === 'function') tasClearSession();
   transitionToCard($('loginCard'), ['clientDashboard', 'adminDashboard']);
