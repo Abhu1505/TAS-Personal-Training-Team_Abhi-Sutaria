@@ -117,15 +117,16 @@
 
 <div class="unified-wrap">
   <div class="card login-card" id="loginCard">
-    <!-- Brand mark: ONE compact header row — photo on the LEFT (slightly
-         raised), wordmark + tagline stacked on the RIGHT. This replaces the
-         old top-right corner block that pushed the login card's content far
-         down the page on phones (users had to scroll up past the logo just
-         to reach the form). Hidden entirely when logged in (only #loginCard
-         shows at a time), and collapses to a slim centered strip on narrow
-         screens so the form is always above the fold. -->
+    <!-- Brand mark: ONE compact header row — photo in its ORIGINAL place
+         (left of the wordmark, same size as before) with only a SLIGHT
+         upward nudge; wordmark + tagline stacked on the RIGHT. The slight
+         raise is done purely with margin-top (see .logo-photo-wrap in
+         styles.css) — the photo stays inside this row, it is NOT moved to
+         the page's top-left corner. Hidden entirely when logged in (only
+         #loginCard shows at a time), and collapses to a slim centered strip
+         on narrow screens so the form is always above the fold. -->
     <div class="login-brand-row">
-      <div class="logo-photo-wrap">
+      <div class="logo-photo-wrap" id="loginLogoPhoto">
         <img data-gdrive-id="1N651kHeVrz6HEhAc1cRRKGx2DtS-IdX0" alt="TAS Personal Training logo photo">
       </div>
       <div class="login-brand-text">
@@ -151,15 +152,10 @@
     <button class="btn-primary" id="unifiedLoginBtn">Log in</button>
     <div id="unifiedStatus" class="status-msg"></div>
 
-    <!-- Contact the admin — email / Instagram / WhatsApp action buttons -->
-    <div class="admin-contact" id="adminContact">
-      <div class="admin-contact-title">Need help? Contact the admin</div>
-      <div class="admin-contact-row">
-        <a class="btn-contact-email" href="mailto:sutariaabhi98@gmail.com" title="Email the admin">✉️ Email</a>
-        <a class="btn-contact-instagram" href="https://www.instagram.com/teamabhisutaria?stkn=d2FoMmxiZ3A2eXhz" target="_blank" rel="noopener noreferrer" title="Admin on Instagram">@teamabhisutaria</a>
-        <a class="btn-contact-whatsapp" href="https://wa.me/971521391505" target="_blank" rel="noopener noreferrer" title="WhatsApp the admin: +971 52 139 1505">📱 WhatsApp</a>
-      </div>
-    </div>
+    <!-- NOTE: the "Need help? Contact the admin" email/Instagram/WhatsApp
+         block was REMOVED from below the login button — it already lives in
+         the site footer (#footerAdminContact), so showing it twice here was
+         redundant. -->
   </div>
 
   <!-- CLIENT DASHBOARD -->
@@ -786,7 +782,76 @@
   </div>
 </div>
 
-<!-- ===== Footer modals: Privacy Policy / Terms of Use (open via footer links) ===== -->
+</div><!-- /unified-wrap -->
+
+<!-- ===== Footer: professional compact layout (brand + nav columns + legal bar) ===== -->
+<footer class="app-footer">
+  <div class="footer-top">
+    <div class="footer-brand-col">
+      <span class="app-footer-brand"><svg class="footer-logo" viewBox="0 0 236 64" role="img" aria-label="TAS Personal Training">
+        <!-- self-contained lockup: renders identically in every theme (no white-on-white) -->
+        <defs>
+          <linearGradient id="tasFooterMarkG" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#1f4e3d"/><stop offset="1" stop-color="#38826a"/>
+          </linearGradient>
+        </defs>
+        <rect width="64" height="64" rx="15" fill="url(#tasFooterMarkG)"/>
+        <g stroke="#ffffff" stroke-width="4.6" stroke-linecap="round" fill="#ffffff">
+          <line x1="22" y1="20" x2="42" y2="20"/>
+          <rect x="13.5" y="13.5" width="7" height="13" rx="2.4" stroke="none"/>
+          <rect x="43.5" y="13.5" width="7" height="13" rx="2.4" stroke="none"/>
+        </g>
+        <text x="32" y="49" text-anchor="middle" font-family="Sora, Inter, Arial, sans-serif" font-weight="800" font-size="17" letter-spacing="1" fill="#ffffff">TAS</text>
+        <text x="78" y="30" font-family="Sora, Inter, Arial, sans-serif" font-weight="800" font-size="22" letter-spacing="-0.5" fill="#143d2c">TAS</text>
+        <text x="78" y="50" font-family="Inter, Arial, sans-serif" font-weight="600" font-size="13" letter-spacing="0.2" fill="#143d2c" opacity="0.75">Personal Training</text>
+      </svg></span>
+      <p class="footer-tagline">Certified personal training in Dubai — customised plans, progress tracking and 1-on-1 coaching in one portal.</p>
+      <a class="footer-follow-link" href="https://www.instagram.com/teamabhisutaria?stkn=d2FoMmxiZ3A2eXhz" target="_blank" rel="noopener noreferrer">Follow @teamabhisutaria for daily workouts &amp; client results →</a>
+      <div class="admin-contact footer-contact" id="footerAdminContact">
+        <div class="admin-contact-title">Need help? Contact the admin</div>
+        <div class="admin-contact-row">
+          <a class="btn-contact-email" href="mailto:sutariaabhi98@gmail.com" title="Email the admin">✉️ Email</a>
+          <a class="btn-contact-instagram" href="https://www.instagram.com/teamabhisutaria?stkn=d2FoMmxiZ3A2eXhz" target="_blank" rel="noopener noreferrer" title="Admin on Instagram">@teamabhisutaria</a>
+          <a class="btn-contact-whatsapp" href="https://wa.me/971521391505" target="_blank" rel="noopener noreferrer" title="WhatsApp the admin: +971 52 139 1505">📱 WhatsApp</a>
+        </div>
+      </div>
+    </div>
+    <nav class="footer-nav" aria-label="Footer navigation">
+      <div class="footer-col">
+        <h4>Quick Links</h4>
+        <a href="#loginCard" data-scroll>🔐 Login</a>
+        <!-- The old 👤 My Profile / 📈 Log Progress / 📝 Log Session /
+             ⚙️ Settings links were hidden until login and did nothing for
+             logged-out visitors — removed so every Quick Link works for
+             everyone. In-app actions remain available inside the dashboards. -->
+        <a href="https://www.instagram.com/teamabhisutaria?stkn=d2FoMmxiZ3A2eXhz" target="_blank" rel="noopener noreferrer">🏋️ Coach on Instagram</a>
+      </div>
+      <div class="footer-col footer-col-legal">
+        <h4>Legal</h4>
+        <a href="#" data-open-modal="privacyModal">🔒 Privacy Policy</a>
+        <a href="#" data-open-modal="termsModal">📄 Terms of Use</a>
+        <a href="mailto:sutariaabhi98@gmail.com">✉️ Data Requests</a>
+      </div>
+      <div class="footer-col">
+        <h4>Contact</h4>
+        <a href="mailto:sutariaabhi98@gmail.com">✉️ sutariaabhi98@gmail.com</a>
+        <a href="https://wa.me/971521391505" target="_blank" rel="noopener noreferrer">📱 +971 52 139 1505</a>
+        <a href="https://www.instagram.com/teamabhisutaria?stkn=d2FoMmxiZ3A2eXhz" target="_blank" rel="noopener noreferrer">📸 @teamabhisutaria</a>
+        <span class="footer-hours">🕐 Daily, 6:00 – 22:00 (GST)</span>
+      </div>
+    </nav>
+  </div>
+  <div class="footer-bottom">
+    <span class="app-footer-copy"><span id="footerAppUrl" title="Portal link sent in WhatsApp messages">—</span> · © <span id="footerYear">2026</span> Team Abhi Sutaria · Dubai, UAE · All rights reserved</span>
+  </div>
+</footer>
+
+<!-- ===== Footer modals (Privacy / Terms) live AFTER </footer> on purpose.
+     The main page content sits inside .unified-wrap; keeping these overlays
+     outside that wrapper guarantees they are never clipped or blocked by any
+     ancestor styling, so the footer's Privacy Policy / Terms of Use links
+     open correctly whether logged out or logged in. They are
+     position:fixed, so they still cover the viewport from here. -->
 <div id="privacyModal" class="modal-overlay hidden">
   <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="privacyModalTitle">
     <h3 id="privacyModalTitle">🔒 Privacy Policy</h3>
@@ -827,70 +892,6 @@
   </div>
 </div>
 
-</div><!-- /unified-wrap -->
-
-<!-- ===== Footer: professional compact layout (brand + nav columns + legal bar) ===== -->
-<footer class="app-footer">
-  <div class="footer-top">
-    <div class="footer-brand-col">
-      <span class="app-footer-brand"><svg class="footer-logo" viewBox="0 0 236 64" role="img" aria-label="TAS Personal Training">
-        <!-- self-contained lockup: renders identically in every theme (no white-on-white) -->
-        <defs>
-          <linearGradient id="tasFooterMarkG" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0" stop-color="#1f4e3d"/><stop offset="1" stop-color="#38826a"/>
-          </linearGradient>
-        </defs>
-        <rect width="64" height="64" rx="15" fill="url(#tasFooterMarkG)"/>
-        <g stroke="#ffffff" stroke-width="4.6" stroke-linecap="round" fill="#ffffff">
-          <line x1="22" y1="20" x2="42" y2="20"/>
-          <rect x="13.5" y="13.5" width="7" height="13" rx="2.4" stroke="none"/>
-          <rect x="43.5" y="13.5" width="7" height="13" rx="2.4" stroke="none"/>
-        </g>
-        <text x="32" y="49" text-anchor="middle" font-family="Sora, Inter, Arial, sans-serif" font-weight="800" font-size="17" letter-spacing="1" fill="#ffffff">TAS</text>
-        <text x="78" y="30" font-family="Sora, Inter, Arial, sans-serif" font-weight="800" font-size="22" letter-spacing="-0.5" fill="#143d2c">TAS</text>
-        <text x="78" y="50" font-family="Inter, Arial, sans-serif" font-weight="600" font-size="13" letter-spacing="0.2" fill="#143d2c" opacity="0.75">Personal Training</text>
-      </svg></span>
-      <p class="footer-tagline">Certified personal training in Dubai — customised plans, progress tracking and 1-on-1 coaching in one portal.</p>
-      <a class="footer-follow-link" href="https://www.instagram.com/teamabhisutaria?stkn=d2FoMmxiZ3A2eXhz" target="_blank" rel="noopener noreferrer">Follow @teamabhisutaria for daily workouts &amp; client results →</a>
-      <div class="admin-contact footer-contact" id="footerAdminContact">
-        <div class="admin-contact-title">Need help? Contact the admin</div>
-        <div class="admin-contact-row">
-          <a class="btn-contact-email" href="mailto:sutariaabhi98@gmail.com" title="Email the admin">✉️ Email</a>
-          <a class="btn-contact-instagram" href="https://www.instagram.com/teamabhisutaria?stkn=d2FoMmxiZ3A2eXhz" target="_blank" rel="noopener noreferrer" title="Admin on Instagram">@teamabhisutaria</a>
-          <a class="btn-contact-whatsapp" href="https://wa.me/971521391505" target="_blank" rel="noopener noreferrer" title="WhatsApp the admin: +971 52 139 1505">📱 WhatsApp</a>
-        </div>
-      </div>
-    </div>
-    <nav class="footer-nav" aria-label="Footer navigation">
-      <div class="footer-col">
-        <h4>Quick Links</h4>
-        <a href="#loginCard" data-scroll>🔐 Login</a>
-        <a href="#" data-open-modal="profileEditModal" data-logged="client" style="display:none;">👤 My Profile</a>
-        <a href="#" data-open-modal="progressModal" data-logged="client" style="display:none;">📈 Log Progress</a>
-        <a href="#" data-open-modal="dayLogModal" data-logged="client" style="display:none;">📝 Log Session</a>
-        <a href="#" data-open-modal="settingsPanel" data-logged="admin" style="display:none;">⚙️ Settings</a>
-        <a href="https://www.instagram.com/teamabhisutaria?stkn=d2FoMmxiZ3A2eXhz" target="_blank" rel="noopener noreferrer">🏋️ Coach on Instagram</a>
-      </div>
-      <div class="footer-col footer-col-legal">
-        <h4>Legal</h4>
-        <a href="#" data-open-modal="privacyModal">🔒 Privacy Policy</a>
-        <a href="#" data-open-modal="termsModal">📄 Terms of Use</a>
-        <a href="mailto:sutariaabhi98@gmail.com">✉️ Data Requests</a>
-      </div>
-      <div class="footer-col">
-        <h4>Contact</h4>
-        <a href="mailto:sutariaabhi98@gmail.com">✉️ sutariaabhi98@gmail.com</a>
-        <a href="https://wa.me/971521391505" target="_blank" rel="noopener noreferrer">📱 +971 52 139 1505</a>
-        <a href="https://www.instagram.com/teamabhisutaria?stkn=d2FoMmxiZ3A2eXhz" target="_blank" rel="noopener noreferrer">📸 @teamabhisutaria</a>
-        <span class="footer-hours">🕐 Daily, 6:00 – 22:00 (GST)</span>
-      </div>
-    </nav>
-  </div>
-  <div class="footer-bottom">
-    <span class="app-footer-copy"><span id="footerAppUrl" title="Portal link sent in WhatsApp messages">—</span> · © <span id="footerYear">2026</span> Team Abhi Sutaria · Dubai, UAE · All rights reserved</span>
-  </div>
-</footer>
-
 <div id="toastContainer" role="status" aria-live="polite"></div>
 
 <script src="js/config.js"></script>
@@ -925,7 +926,14 @@
 <script>
 /* ---- Footer navigation (Privacy / Terms / Quick Links) ----
    Wired here because the footer markup ships with index.html;
-   all lookups are guarded so nothing breaks if an element is absent. */
+   all lookups are guarded so nothing breaks if an element is absent.
+
+   WHY SOME FOOTER LINKS DIDN'T WORK: the privacy/terms modals used to
+   sit deep inside .unified-wrap alongside the app cards, where ancestor
+   layout/stacking could clip or block them — so their footer links did
+   nothing while "🔐 Login" (a plain scroll link) appeared to be the only
+   one that worked. The modals now live right after </footer>, outside
+   that wrapper, and every footer link is handled robustly below. */
 (function () {
   // Open a modal-overlay OR an admin panel (settingsPanel uses .hidden too).
   function openFooterTarget(id) {
@@ -963,7 +971,9 @@
     }
   }
 
-  // Show/hide role-gated quick links ('admin' | 'client' | null).
+  // Show/hide role-gated quick links ('admin' | 'client' | null). Kept for
+  // backward compatibility (auth.js calls it on login/logout); the current
+  // footer has no [data-logged] links, so this is a safe no-op for them.
   window.refreshFooterNav = function (role) {
     document.querySelectorAll('.footer-nav [data-logged]').forEach(function (a) {
       a.style.display = (a.getAttribute('data-logged') === role) ? '' : 'none';
@@ -972,16 +982,45 @@
     if (loginLink) loginLink.style.display = role ? 'none' : '';
   };
 
+  // Robust click handling for EVERY footer link — bound directly to the
+  // <a> elements (not just via delegation), and also delegated as a safety
+  // net for clicks that land on child nodes:
+  //   • data-open-modal → open the matching overlay/panel
+  //   • data-scroll     → smooth-scroll to the target id
+  //   • plain "#"/javascript links → never jump the page to the top
+  // External links (Instagram / mailto: / wa.me) keep native behaviour.
+  function wireFooterLinks() {
+    document.querySelectorAll('.footer-nav a').forEach(function (link) {
+      if (link.dataset.footerWired === '1') return;
+      link.dataset.footerWired = '1';
+      link.addEventListener('click', function (e) {
+        var modalId = link.getAttribute('data-open-modal');
+        if (modalId) { e.preventDefault(); openFooterTarget(modalId); return; }
+        if (link.hasAttribute('data-scroll')) {
+          e.preventDefault();
+          var t = document.getElementById((link.getAttribute('href') || '').replace('#', ''));
+          if (t) t.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          return;
+        }
+        var href = link.getAttribute('href') || '';
+        if (href === '#' || href === '' || /^javascript:/i.test(href)) e.preventDefault();
+      });
+    });
+  }
+  wireFooterLinks();
   document.addEventListener('click', function (e) {
     var link = e.target.closest ? e.target.closest('.footer-nav a') : null;
     if (!link) return;
-    e.preventDefault(); // stop '#' links from jumping the page to the top on phones
     var modalId = link.getAttribute('data-open-modal');
-    if (modalId) { openFooterTarget(modalId); return; }
+    if (modalId) { e.preventDefault(); openFooterTarget(modalId); return; }
     if (link.hasAttribute('data-scroll')) {
+      e.preventDefault(); // stop '#' links from jumping the page to the top on phones
       var t = document.getElementById((link.getAttribute('href') || '').replace('#', ''));
       if (t) t.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      return;
     }
+    var href = link.getAttribute('href') || '';
+    if (href === '#' || href === '' || /^javascript:/i.test(href)) e.preventDefault();
   });
 
   // Close buttons + backdrop click for the legal modals
