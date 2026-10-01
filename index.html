@@ -739,7 +739,23 @@
 </div>
 
 <footer class="app-footer">
-  <span class="app-footer-brand"><svg class="footer-logo" viewBox="0 0 236 64" role="img" aria-label="TAS Personal Training"><use href="#tas-lockup"/></svg></span>
+  <span class="app-footer-brand"><svg class="footer-logo" viewBox="0 0 236 64" role="img" aria-label="TAS Personal Training">
+    <!-- self-contained lockup: renders identically in every theme (no white-on-white) -->
+    <defs>
+      <linearGradient id="tasFooterMarkG" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#1f4e3d"/><stop offset="1" stop-color="#38826a"/>
+      </linearGradient>
+    </defs>
+    <rect width="64" height="64" rx="15" fill="url(#tasFooterMarkG)"/>
+    <g stroke="#ffffff" stroke-width="4.6" stroke-linecap="round" fill="#ffffff">
+      <line x1="22" y1="20" x2="42" y2="20"/>
+      <rect x="13.5" y="13.5" width="7" height="13" rx="2.4" stroke="none"/>
+      <rect x="43.5" y="13.5" width="7" height="13" rx="2.4" stroke="none"/>
+    </g>
+    <text x="32" y="49" text-anchor="middle" font-family="Sora, Inter, Arial, sans-serif" font-weight="800" font-size="17" letter-spacing="1" fill="#ffffff">TAS</text>
+    <text x="78" y="30" font-family="Sora, Inter, Arial, sans-serif" font-weight="800" font-size="22" letter-spacing="-0.5" fill="#143d2c">TAS</text>
+    <text x="78" y="50" font-family="Inter, Arial, sans-serif" font-weight="600" font-size="13" letter-spacing="0.2" fill="#143d2c" opacity="0.75">Personal Training</text>
+  </svg></span>
   <span class="app-footer-copy"><span id="footerAppUrl" title="Portal link sent in WhatsApp messages">—</span> · © <span id="footerYear">2026</span> · All rights reserved</span>
 </footer>
 
