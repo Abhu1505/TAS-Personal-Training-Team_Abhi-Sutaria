@@ -1277,18 +1277,50 @@ img{max-width:100%;}
 }
 
 /* ============================================================
-   📲 STANDALONE APP FIX v10 — "top of the screen not readable in
-   the installed app". In the installed app (Android WebView /
-   iOS standalone) the page sits under the status bar / notch and
-   the keyboard can push the view down, clipping the brand row.
-   Now the app adds extra top clearance (respecting the device
-   safe-area inset) AND auto-scrolls the login card to the very
-   top on load, so nothing above the fold is ever cut off.
-   Nothing else changes — same content, same logo sizes.
+   📲 STANDALONE APP FIX v12 — two things at once:
+   1) "Top not readable in the installed app": the app window
+      sits under the status bar / notch, so we add explicit top
+      clearance using the device safe-area inset AND auto-scroll
+      to the very top on load (see js/pwa.js keepAppTopVisible).
+   2) "Login panel still has lots of space between the items":
+      earlier compaction was being overridden by the generic
+      device-class rules further down this file, so NOTHING
+      looked different. These FINAL rules (bottom of the
+      stylesheet + !important) win over every earlier rule and
+      tighten ONLY the vertical gaps inside the login card:
+      card padding, brand-row margin, heading/subhead/cloud
+      gaps, input-group gaps, label margins, button height.
+      ⚠ LOGO / PHOTO SIZES ARE EXPLICITLY KEPT UNTOUCHED.
    ============================================================ */
 @media (display-mode:standalone){
   html.device-phone body{padding-top:calc(0.9rem + var(--safe-t));}
   #loginCard{scroll-margin-top:calc(0.4rem + var(--safe-t));}
+}
+
+/* ---- COMPACT LOGIN CARD v12 — applies EVERYWHERE (browser tab,
+   phone, tablet, laptop AND the installed standalone app).
+   Only spacing changes; no text, colours, sizes or features. ---- */
+.login-card{padding:0.8rem 1rem 0.75rem !important;}
+.login-card .login-brand-row{margin:0 0 0.3rem !important;}
+.login-card .login-head{margin-top:0 !important;}
+.login-card .login-head-top{margin-bottom:0.1rem !important;}
+.login-card h2{margin-bottom:0.15rem !important;}
+.login-card .badge{margin-bottom:0 !important;}
+.login-card .subhead{margin-bottom:0.3rem !important;line-height:1.35 !important;}
+.login-card .cloud-status{margin-bottom:0.35rem !important;padding:0.3rem 0.75rem !important;}
+.login-card .input-group{margin-bottom:0.35rem !important;}
+.login-card label{margin-bottom:0.2rem !important;}
+.login-card .btn-primary{margin-top:0.1rem !important;padding:0.6rem 1.3rem !important;}
+.login-card .status-msg{margin-top:0.4rem !important;}
+.login-card .pwa-install-btn{margin-top:0.25rem !important;}
+/* NOTE: the photo logo / wordmark sizes are deliberately NOT listed
+   here at all — they keep their original values from earlier in this
+   file (200px desktop, 190px phone, 140px ≤400px). Only gaps changed. */
+@media (display-mode:standalone){
+  .login-card{padding:0.7rem 0.9rem 0.7rem !important;}
+}
+@media (max-width:480px){
+  .login-card{padding:0.65rem 0.8rem 0.65rem !important;}
 }
 
 /* ---- Install helper chip (works everywhere, incl. iOS Safari) ---- */
