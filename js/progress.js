@@ -811,6 +811,10 @@ window.shouldShowWeeklyProfileReminder = function (c) {
   // Brand-new clients with nothing approved yet already see the big
   // "✍️ No approved data yet" banner on the Profile tab — no popup needed.
   if (!window.profileHasApprovedData(p)) return false;
+  // Don't nag while an update is already sitting in the trainer's queue.
+  const pendingProfile = (APP_STATE.profileApprovals || [])
+    .some(a => sameId(a.client_id, c.id) && a.status === 'pending');
+  if (pendingProfile) return false;
   const lastPopupTs = Number(localStorage.getItem(WEEKLY_PROFILE_LS + String(c.id)) || 0);
   return (Date.now() - lastPopupTs) >= WEEK_MS;
 };
@@ -874,4 +878,7 @@ document.addEventListener('click', (e) => {
   document.addEventListener('visibilitychange', () => {
     if (!document.hidden) setTimeout(tryShow, 3000);  // returning to the tab
   });
+  // Login fires before the approvals/profile fetch completes, so give the
+  // data one more short beat before deciding whether to show the popup.
+  setTimeout(tryShow, 2500);
 })();

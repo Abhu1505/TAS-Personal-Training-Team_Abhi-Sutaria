@@ -389,4 +389,40 @@
   } else {
     boot();
   }
+
+/* ============================================================
+   📌 FIXED CLIENT HEADER — keep the pinned "Welcome back" bar and
+   pending-approval banner in sync on phones (CSS @media ≤700px).
+   Measures real heights and feeds them to CSS custom properties so
+   content never hides under the fixed header, even when the banner
+   appears/disappears or tabs wrap onto two lines.
+   ============================================================ */
+(function clientHeaderPin(){
+  const dash = document.getElementById('clientDashboard');
+  if (!dash) return;
+  function sync(){
+    if (window.innerWidth > 700 || dash.classList.contains('hidden')){
+      document.documentElement.style.removeProperty('--client-head-clear');
+      document.documentElement.style.removeProperty('--client-head-h');
+      return;
+    }
+    const head = dash.querySelector('.dash-header.client-dash-header') || dash.querySelector('.dash-header');
+    const banner = document.getElementById('clientPendingBanner');
+    const headH = head ? head.getBoundingClientRect().height : 56;
+    const bannerH = (banner && !banner.classList.contains('hidden')) ? banner.getBoundingClientRect().height + 8 : 0;
+    document.documentElement.style.setProperty('--client-head-h', Math.round(headH) + 'px');
+    document.documentElement.style.setProperty('--client-head-clear', Math.round(headH + bannerH + 8) + 'px');
+  }
+  window.addEventListener('resize', sync, {passive:true});
+  window.addEventListener('orientationchange', () => setTimeout(sync, 250));
+  if (window.MutationObserver){
+    new MutationObserver(sync).observe(dash, {attributes:true, subtree:true, attributeFilter:['class']});
+  }
+  // Re-sync after tab switches re-render the dashboard
+  ['ctab-plan','ctab-history','ctab-progress','ctab-calculators','ctab-profile'].forEach(()=>{});
+  document.addEventListener('click', e => { if (e.target.closest && e.target.closest('.client-tabs')) setTimeout(sync, 60); });
+  const boot = () => { sync(); setTimeout(sync, 400); };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
+})();
+
 })();

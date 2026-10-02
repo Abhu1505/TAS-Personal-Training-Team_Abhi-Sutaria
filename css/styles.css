@@ -1419,6 +1419,30 @@ html.device-phone body{padding-bottom:var(--dock-clearance);}
 html.device-phone #toastContainer{bottom:calc(4.4rem + var(--safe-b));top:auto !important;}
 html.device-phone .app-footer{margin-bottom:1rem;}
 
+/* ============================================================
+   📌 FIXED CLIENT HEADER (phones) — the "Welcome back" bar and
+   the 👤 Basic Details / 📌 Shared Inputs approval banners must
+   never scroll away; they stay pinned at the top at all times.
+   The content below is pushed down with padding so nothing hides.
+   ============================================================ */
+@media (max-width:700px){
+  #clientDashboard .dash-header.client-dash-header{
+    position:fixed;top:0;left:0;right:0;z-index:9500;
+    margin:0;padding:calc(0.55rem + var(--safe-t, env(safe-area-inset-top))) 0.8rem 0.55rem;
+    background:rgba(255,255,255,.94);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+    border-bottom:1px solid var(--line);border-radius:0;
+    box-shadow:0 2px 10px rgba(0,0,0,.08);
+  }
+  [data-theme="dark"] #clientDashboard .dash-header.client-dash-header{background:rgba(15,28,40,.94);}
+  /* keep the pending-approval banner directly under the fixed header, also pinned */
+  #clientDashboard #clientPendingBanner{
+    position:fixed;top:var(--client-head-h,3.6rem);left:0.5rem;right:0.5rem;z-index:9490;margin:0;
+  }
+  /* push all dashboard content below the fixed header */
+  #clientDashboard:not(.hidden){padding-top:var(--client-head-clear,4.4rem);}
+  #clientDashboard:not(.hidden) > .dash-header{padding-top:0;margin-top:calc(-1 * var(--client-head-clear,4.4rem));}
+}
+
 /* ---- TABLET MODE (touch, 701–1023px): compact centered column ---- */
 html.device-tablet .unified-wrap{max-width:min(720px,100%);}
 html.device-tablet .app-footer{max-width:min(720px,100% - 1rem);}
