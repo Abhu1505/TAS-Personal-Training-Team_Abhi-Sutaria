@@ -238,6 +238,24 @@
       </div>
     </div>
     <div class="tab-content hidden" id="ctab-progress">
+      <!-- 📈 PROGRESS INSIGHTS (js/insights.js) — weekly & monthly charts +
+           approved calculator KPIs. Rendered from APPROVED data only:
+           progress entries, finished sessions and the approved profile. -->
+      <div class="section-card insights-panel" id="clientInsightsPanel">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem;flex-wrap:wrap;gap:0.5rem;">
+          <span class="section-card-title" style="margin-bottom:0;">📊 Your Progress — Charts &amp; Key Metrics</span>
+          <span class="section-card-hint" style="margin:0;">Till date · built from your approved entries &amp; sessions</span>
+        </div>
+        <div class="insight-summary" id="insightSummary"></div>
+        <div class="insight-charts">
+          <div id="insightWeightChart" class="insight-chart-slot"></div>
+          <div id="insightBodyfatChart" class="insight-chart-slot"></div>
+          <div id="insightWeeklyChart" class="insight-chart-slot"></div>
+          <div id="insightMonthlyChart" class="insight-chart-slot"></div>
+        </div>
+        <div class="insight-kpis-title">🧮 Your approved calculator results</div>
+        <div class="kpi-grid" id="clientInsightKpis"></div>
+      </div>
       <div class="section-card">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.7rem;flex-wrap:wrap;gap:0.5rem;">
           <span class="section-card-title" style="margin-bottom:0;">📈 Your Progress</span>
@@ -874,6 +892,28 @@
      all 15 calculators regenerate from fresh data. On the trainer's NEXT
      approval the previous approved data is archived into 📈 Progress
      automatically (snapshot-on-re-approval in js/approvals.js). -->
+<!-- ✨ DAILY MOTIVATION POPUP (js/tools.js) — shows once per calendar day,
+     right after a client logs in for the first time that day. Quote rotates
+     daily; "🔄 Another one" shuffles without closing. -->
+<div id="motivationModal" class="modal-overlay hidden">
+  <div class="modal-box motivation-box">
+    <div class="modal-header green">
+      <h3>✨ Your Daily Motivation</h3>
+      <p>A fresh boost for today — makes you strong</p>
+    </div>
+    <div class="modal-body">
+      <button class="panel-close-x" type="button" id="motCloseX" aria-label="Close">✕</button>
+      <div class="mot-emoji" aria-hidden="true">🔥</div>
+      <div class="mot-quote" id="motQuoteText">Loading…</div>
+      <div class="mot-date" id="motDateLabel"></div>
+      <div class="modal-actions mot-actions">
+        <button type="button" class="chip-btn" id="motNextBtn">🔄 Another one</button>
+        <button type="button" class="btn-primary" id="motStartBtn">💪 Let's do this today!</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div id="weeklyProfileModal" class="modal-overlay hidden">
   <div class="modal-box">
     <div class="modal-header orange">

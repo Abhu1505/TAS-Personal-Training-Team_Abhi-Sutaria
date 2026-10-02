@@ -222,12 +222,63 @@
     '“Stronger than yesterday. That’s the only competition.”',
     '“Rest is part of the training, not a break from it.”'
   ];
+  function dailyQuoteIndex() {
+    return Math.abs(Math.floor(Date.now() / 86400000)) % QUOTES.length;
+  }
   function showQuote(seed) {
     var el = $('toolQuoteText'); if (!el) return;
-    var d = seed != null ? seed : Math.floor(Date.now() / 86400000); // daily rotating
+    var d = seed != null ? seed : dailyQuoteIndex(); // daily rotating
     el.textContent = QUOTES[Math.abs(d) % QUOTES.length];
     el.classList.remove('quote-pop'); void el.offsetWidth; el.classList.add('quote-pop');
   }
+
+  // ---------------- ✨ Daily Motivation POPUP (once per day, on login) ----------
+  // Shows right after a client opens their dashboard for the FIRST time in a
+  // calendar day. "Let's do this" / ✕ marks today as shown (per client, in
+  // localStorage); relogins or refreshes the same day never re-trigger it.
+  var MOT_SHOWN_KEY = 'tas_motivation_shown_';   // + clientId → 'YYYY-MM-DD'
+  var motOpen = false;
+
+  function setMotQuote(idx) {
+    var el = $('motQuoteText'); if (!el) return;
+    el.textContent = QUOTES[Math.abs(idx) % QUOTES.length];
+    el.classList.remove('quote-pop'); void el.offsetWidth; el.classList.add('quote-pop');
+  }
+  function openMotivationPopup() {
+    var modal = $('motivationModal'); if (!modal) return;
+    var dl = $('motDateLabel');
+    if (dl) {
+      try {
+        dl.textContent = new Date().toLocaleDateString('en-GB',
+          { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+      } catch (e) { dl.textContent = todayKey(); }
+    }
+    setMotQuote(dailyQuoteIndex());
+    modal.classList.remove('hidden');
+    motOpen = true;
+  }
+  function markMotShownToday() {
+    try { localStorage.setItem(MOT_SHOWN_KEY + currentClientId(), todayKey()); } catch (e) { }
+  }
+  window.closeMotivationPopup = function () {
+    var modal = $('motivationModal');
+    if (modal) modal.classList.add('hidden');
+    motOpen = false;
+    markMotShownToday();
+  };
+  // Called by auth.js right after a successful CLIENT login.
+  window.checkDailyMotivationPopup = function () {
+    var c = window.APP_STATE && window.APP_STATE.loggedInClient;
+    if (!c) return;                                  // clients only
+    if (motOpen) return;                             // already visible
+    var lastShown = null;
+    try { lastShown = localStorage.getItem(MOT_SHOWN_KEY + String(c.id)); } catch (e) { }
+    if (lastShown === todayKey()) return;            // already shown today
+    setTimeout(function () {                         // small beat so the
+      var cc = window.APP_STATE && window.APP_STATE.loggedInClient;   // dashboard
+      if (cc && String(cc.id) === String(c.id)) openMotivationPopup(); // settles first
+    }, 900);
+  };
 
   // ---------------- Wiring ----------------
   function bindOnce() {
@@ -267,6 +318,19 @@
     var goal = $('toolWaterGoalBtn'); if (goal) goal.addEventListener('click', cycleGoal);
 
     var qn = $('toolQuoteNext'); if (qn) qn.addEventListener('click', function () { showQuote(Math.floor(Math.random() * 1e6)); });
+
+    // ✨ Daily motivation popup buttons (delegated-safe: markup ships static)
+    var motNext = $('motNextBtn');
+    if (motNext) motNext.addEventListener('click', function () {
+      setMotQuote(Math.floor(Math.random() * 1e6));
+    });
+    var motStart = $('motStartBtn');
+    if (motStart) motStart.addEventListener('click', function () {
+      window.closeMotivationPopup();
+      if (window.showToast) window.showToast('💪 Let’s make today count!', 'success');
+    });
+    var motX = $('motCloseX');
+    if (motX) motX.addEventListener('click', function () { window.closeMotivationPopup(); });
 
     // Restore tab title when leaving the tools view / finishing
     window.addEventListener('beforeunload', function () { stopTimer(false); });

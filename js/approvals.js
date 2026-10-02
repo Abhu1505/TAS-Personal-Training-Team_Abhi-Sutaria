@@ -180,7 +180,13 @@ window.decideApproval = async function (id, decision, type) {
       Object.assign(a, updates);
       renderApprovals(); updateApprovalsBadge(); renderClientList();
       if (sameId(APP_STATE.selectedClientId, a.client_id)) renderAdminProgress();
-      if (APP_STATE.loggedInClient && sameId(APP_STATE.loggedInClient.id, a.client_id)) renderClientProgress(APP_STATE.loggedInClient);
+      // If that client happens to be signed in on THIS device, refresh their
+      // portal too — 📈 Progress insights (charts + approved calculator KPIs)
+      // must reflect the approval immediately.
+      if (APP_STATE.loggedInClient && sameId(APP_STATE.loggedInClient.id, a.client_id)) {
+        renderClientProgress(APP_STATE.loggedInClient);
+        try { if (typeof window.renderClientInsights === 'function') window.renderClientInsights(APP_STATE.loggedInClient.id); } catch (e) { }
+      }
     } else {
       if (decision === 'approved') {
         // 🗂️ SNAPSHOT-ON-RE-APPROVAL: when a client re-submits their profile
@@ -294,6 +300,11 @@ window.decideApproval = async function (id, decision, type) {
       }
       Object.assign(a, updates);
       renderApprovals(); updateApprovalsBadge(); renderClientList();
+      // 📈 Approved profile → the client's Progress insights (calculator KPIs)
+      // refresh instantly when that client is signed in on this device.
+      if (decision === 'approved' && APP_STATE.loggedInClient && sameId(APP_STATE.loggedInClient.id, a.client_id)) {
+        try { if (typeof window.renderClientInsights === 'function') window.renderClientInsights(a.client_id); } catch (e) { }
+      }
     }
     showStatus($('approvalsStatus'), `✅ ${decision === 'approved' ? 'Approved' : 'Rejected'}.`, 'success');
     setTimeout(() => clearStatus($('approvalsStatus')), 3000);

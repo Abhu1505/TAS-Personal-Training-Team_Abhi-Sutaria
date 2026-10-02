@@ -580,6 +580,24 @@
     return r;
   }
 
+  // Exposed for the 📈 Progress tab "Key Metrics" panel (js/insights.js):
+  // computes ALL 15 calculator results from ANY input set — used with the
+  // client's APPROVED profile stats so every reflected result is visible
+  // in one place. Returns null when no numbers exist yet.
+  window.computeFitnessResults = function (inputs) {
+    const snapshot = current;
+    try {
+      current = Object.assign({}, DEFAULTS, inputs || {});
+      if (inputsEmpty()) return null;
+      return compute();
+    } catch (e) {
+      console.warn('computeFitnessResults:', e);
+      return null;
+    } finally {
+      current = snapshot;   // never disturb the live hub state
+    }
+  };
+
   // ---------- card rendering ----------
   function bar(pct, color) {
     const p = Math.max(0, Math.min(100, pct));
