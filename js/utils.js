@@ -51,29 +51,77 @@ window.isTrainerSession = function () {
 };
 
 /* ============================================================
-   SINGLE-DEVICE LOGIN LOCK
+   MULTI-LOGIN SESSION STORE  (device-local, never cloud)
    ------------------------------------------------------------
-   When a client or the admin logs in on THIS device, an
-   "active session" record is saved locally (localStorage).
-   On every page load we check that record BEFORE showing the
-   login form — if it exists the user is taken straight back
-   into their dashboard ("logged in only" on this device).
-   Logging out clears the record so the login screen appears
-   again. Each device keeps its own record, so logins on
-   different devices stay completely separate.
+   • Every login is stored ONLY in this browser's localStorage —
+     nothing about a login is ever written to Supabase/the cloud,
+     so opening an ID on one device can NEVER auto-open it on
+     another device.
+   • Sessions are keyed by role + login id, so MANY different
+     IDs can be remembered side-by-side in the same browser
+     (switch accounts freely — each one restores its own last
+     login when you enter it again).
+   • A legacy single-slot record from older builds is migrated
+     automatically and then removed.
    ============================================================ */
-const TAS_SESSION_KEY = 'tas_active_session_v1';
+const TAS_SESSIONS_KEY = 'tas_device_sessions_v2';
+const TAS_LEGACY_SESSION_KEY = 'tas_active_session_v1';
 
+window.tasReadSessionsMap = function () {
+  let map = {};
+  try { map = JSON.parse(localStorage.getItem(TAS_SESSIONS_KEY) || '{}') || {}; } catch (e) { map = {}; }
+  // One-time migration from the old single-slot record.
+  try {
+    const legacy = JSON.parse(localStorage.getItem(TAS_LEGACY_SESSION_KEY) || 'null');
+    if (legacy && legacy.role) {
+      const k = (legacy.role === 'admin' ? 'admin:' : 'client:') + String(legacy.loginId || legacy.clientId || '').toUpperCase();
+      if (!map[k]) map[k] = legacy;
+      localStorage.removeItem(TAS_LEGACY_SESSION_KEY);
+      localStorage.setItem(TAS_SESSIONS_KEY, JSON.stringify(map));
+    }
+  } catch (e) {}
+  return map;
+};
+
+window.tasSessionKey = function (sess) {
+  if (!sess || !sess.role) return null;
+  const id = sess.role === 'admin' ? (sess.loginId || 'admin') : (sess.loginId || sess.clientId || '');
+  return sess.role + ':' + String(id).toUpperCase();
+};
+
+// Remember a login for THIS device only (never uploaded to the cloud).
 window.tasSaveSession = function (sess) {
-  try { localStorage.setItem(TAS_SESSION_KEY, JSON.stringify({ ...sess, ts: Date.now() })); } catch (e) {}
+  try {
+    const map = window.tasReadSessionsMap();
+    const k = window.tasSessionKey(sess);
+    if (!k) return;
+    map[k] = { ...sess, ts: Date.now() };
+    localStorage.setItem(TAS_SESSIONS_KEY, JSON.stringify(map));
+  } catch (e) {}
 };
 
-window.tasLoadSession = function () {
-  try { return JSON.parse(localStorage.getItem(TAS_SESSION_KEY) || 'null'); } catch (e) { return null; }
+// Look up the remembered login for a specific ID (or the most recent
+// one overall when called without arguments — used at app start).
+window.tasLoadSession = function (key) {
+  const map = window.tasReadSessionsMap();
+  if (key) return map[key] || null;
+  let best = null;
+  Object.values(map).forEach(s => { if (s && (!best || (s.ts || 0) > (best.ts || 0))) best = s; });
+  return best;
 };
 
-window.tasClearSession = function () {
-  try { localStorage.removeItem(TAS_SESSION_KEY); } catch (e) {}
+// Forget ONE login (logout) — other remembered IDs stay untouched.
+window.tasClearSession = function (key) {
+  try {
+    if (key) {
+      const map = window.tasReadSessionsMap();
+      delete map[key];
+      localStorage.setItem(TAS_SESSIONS_KEY, JSON.stringify(map));
+    } else {
+      localStorage.removeItem(TAS_SESSIONS_KEY);
+      localStorage.removeItem(TAS_LEGACY_SESSION_KEY);
+    }
+  } catch (e) {}
   try { sessionStorage.removeItem('tas_trainer_session'); } catch (e) {}
 };
 

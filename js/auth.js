@@ -16,28 +16,45 @@ window.transitionToCard = function (target, hideIds) {
 
 window.handleUnifiedLogin = async function () {
   const loginId = $('loginIdInput').value.trim();
-  const password = $('passwordInput').value.trim();
-  if (!loginId || !password) {
+  let password = $('passwordInput').value.trim();
+  if (!loginId) {
+    showStatus($('unifiedStatus'), 'Enter Login ID and password.', 'error');
+    return;
+  }
+  // MULTI-LOGIN: if this browser remembers a previous successful login for
+  // THIS exact ID, the user may leave the password blank and sign right in.
+  // Each ID keeps its own remembered session — logging in with one ID never
+  // blocks or replaces another ID on any device.
+  const remembered = (typeof tasLoadSession === 'function')
+    ? tasLoadSession('client:' + loginId.toUpperCase()) : null;
+  const adminRemembered = (typeof tasLoadSession === 'function')
+    ? tasLoadSession('admin:' + String(APP_STATE.adminConfig.admin_login_id || '').toUpperCase()) : null;
+  if (!password && remembered && remembered.role === 'client' && remembered.password) {
+    password = remembered.password;
+  } else if (!password && adminRemembered && adminRemembered.role === 'admin' && adminRemembered.password) {
+    password = adminRemembered.password;
+  }
+  if (!password) {
     showStatus($('unifiedStatus'), 'Enter Login ID and password.', 'error');
     return;
   }
   if (loginId === APP_STATE.adminConfig.admin_login_id && password === APP_STATE.adminConfig.admin_password) {
-    openAdminDashboard();
+    openAdminDashboard(password);
     return;
   }
   const up = loginId.toUpperCase();
   const c = APP_STATE.clients.find(x => (x.login_id || '').toUpperCase() === up && x.password_hint === password);
   if (!c) { showStatus($('unifiedStatus'), '❌ Invalid login.', 'error'); return; }
   if (!c.active) { showStatus($('unifiedStatus'), '🔒 Account closed.', 'error'); return; }
-  openClientDashboard(c);
+  openClientDashboard(c, password);
 };
 
-window.openAdminDashboard = function () {
+window.openAdminDashboard = function (password) {
   APP_STATE.loggedInClient = null;
   // Remember on THIS device only — next time the app opens on this
   // device the admin lands straight back in the dashboard.
   if (typeof tasSaveSession === 'function') {
-    tasSaveSession({ role: 'admin', loginId: APP_STATE.adminConfig.admin_login_id });
+    tasSaveSession({ role: 'admin', loginId: APP_STATE.adminConfig.admin_login_id, password: password || '' });
   }
   try { sessionStorage.setItem('tas_trainer_session', '1'); } catch (e) {}
   transitionToCard($('adminDashboard'), ['loginCard', 'clientDashboard']);
@@ -57,12 +74,14 @@ window.openAdminDashboard = function () {
   startNotificationPolling();
 };
 
-window.openClientDashboard = function (c) {
+window.openClientDashboard = function (c, password) {
   APP_STATE.loggedInClient = c;
   // Remember on THIS device only — next time the app opens on this
-  // device the client lands straight back in their portal.
+  // device the client lands straight back in their portal. Other IDs
+  // remembered on this device stay untouched (multi-login), and this
+  // record NEVER leaves the device, so no other device auto-opens it.
   if (typeof tasSaveSession === 'function') {
-    tasSaveSession({ role: 'client', clientId: String(c.id), loginId: c.login_id });
+    tasSaveSession({ role: 'client', clientId: String(c.id), loginId: c.login_id, password: password || '' });
   }
   transitionToCard($('clientDashboard'), ['loginCard', 'adminDashboard']);
   try { if (typeof window.refreshFooterNav === 'function') window.refreshFooterNav('client'); } catch (e) {}
@@ -135,6 +154,19 @@ window.refreshClientPortalViews = window.refreshClientPortalViews || function ()
 };
 
 window.unifiedLogout = function () {
+  // Forget ONLY the ID that is currently logged in on this device —
+  // other IDs remembered here stay available for quick re-login.
+  try {
+    const cur = APP_STATE.loggedInClient;
+    if (cur && typeof tasClearSession === 'function') {
+      tasClearSession('client:' + String(cur.login_id || '').toUpperCase());
+    } else if (!cur && typeof tasReadSessionsMap === 'function') {
+      // Admin logout: drop the admin record, keep client records.
+      const map = tasReadSessionsMap();
+      Object.keys(map).forEach(k => { if (k.startsWith('admin:')) delete map[k]; });
+      localStorage.setItem('tas_device_sessions_v2', JSON.stringify(map));
+    }
+  } catch (e) { if (typeof tasClearSession === 'function') tasClearSession(); }
   APP_STATE.loggedInClient = null;
   APP_STATE.selectedClientId = null;
   // Stop the alert polling loop and silence any pending badge.
@@ -142,8 +174,6 @@ window.unifiedLogout = function () {
   APP_STATE.clientSnapshot = null;
   APP_STATE.lastSeenApprovalCount = 0;
   try { clearAlertBadge(); } catch (e) {}
-  // Forget this device — next open shows the login screen again.
-  if (typeof tasClearSession === 'function') tasClearSession();
   transitionToCard($('loginCard'), ['clientDashboard', 'adminDashboard']);
   try { if (typeof window.refreshFooterNav === 'function') window.refreshFooterNav(null); } catch (e) {}
   $('loginIdInput').value = '';
@@ -155,6 +185,10 @@ window.unifiedLogout = function () {
    AUTO-RESTORE — called once after cloud data has loaded.
    If THIS device has a saved login (client or admin), skip the
    login form and open the matching dashboard directly.
+   MULTI-LOGIN: every remembered ID lives side-by-side in this
+   browser's local storage (never in the cloud). At app start we
+   restore the most recent one; switching to another ID is just a
+   normal login (or blank password) via the login form.
    ============================================================ */
 window.tryRestoreDeviceSession = function () {
   const sess = (typeof tasLoadSession === 'function') ? tasLoadSession() : null;
@@ -162,15 +196,15 @@ window.tryRestoreDeviceSession = function () {
   if (sess.role === 'admin') {
     // Admin credentials may have changed in settings — re-validate.
     const pwOk = !sess.password || sess.password === APP_STATE.adminConfig.admin_password;
-    if (pwOk && typeof openAdminDashboard === 'function') { openAdminDashboard(); return true; }
-    tasClearSession();
+    if (pwOk && typeof openAdminDashboard === 'function') { openAdminDashboard(sess.password); return true; }
+    tasClearSession('admin:' + String(sess.loginId || '').toUpperCase());
     return false;
   }
   if (sess.role === 'client' && sess.clientId) {
     const c = (APP_STATE.clients || []).find(x => sameId(x.id, sess.clientId));
-    if (c && c.active !== false) { openClientDashboard(c); return true; }
+    if (c && c.active !== false) { openClientDashboard(c, sess.password); return true; }
     // Client removed / closed on another device → must log in again.
-    tasClearSession();
+    tasClearSession('client:' + String(sess.loginId || sess.clientId || '').toUpperCase());
     return false;
   }
   return false;
