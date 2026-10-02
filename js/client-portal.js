@@ -35,34 +35,74 @@
 
   // ============================================================
   // 1 · ✏️ EDIT PROFILE — guaranteed-working opener
+  // ------------------------------------------------------------
+  // BUG FIX ("✏️ Edit Profile button is not working"): every step below is
+  // individually guarded so ONE hiccup can no longer kill the whole flow:
+  //   • the modal element is looked up FIRST and always shown, even if
+  //     prefill or the tab switch throws,
+  //   • a stale "hidden" inline style left by an older script version is
+  //     cleared (display:none would hide the modal even without .hidden),
+  //   • date inputs are sanitized ('null'/bad strings used to throw),
+  //   • the shared-input prefill is wrapped in its own try/catch.
   // ============================================================
   window.tasOpenProfileEdit = function () {
+    const modal = $id('profileEditModal');
+    if (!modal) {
+      showToastSafe('⚠️ Profile form not found — please hard-refresh (Ctrl+Shift+R) and try again.', 'error');
+      return;
+    }
+    const reveal = () => {
+      try { modal.style.display = ''; } catch (e) {}       // clear any stale inline hiding
+      modal.classList.remove('hidden');
+      const st = $id('profileEditStatus');
+      if (st) st.textContent = '';
+    };
+    const focusFirst = () => {
+      const first = $id('peHeight');
+      if (first) setTimeout(() => { try { first.focus(); } catch (e) {} }, 250);
+    };
+
+    const S = window.APP_STATE;
+    const c = S && S.loggedInClient;
+    if (!c) {
+      showToastSafe('🔐 Please sign in first to edit your profile.', 'info');
+      const login = $id('loginIdInput');
+      if (login) { try { login.focus(); } catch (e) {} }
+      return;
+    }
+
+    let p = {};
     try {
-      const S = window.APP_STATE;
-      const c = S && S.loggedInClient;
-      if (!c) {
-        showToastSafe('🔐 Please sign in first to edit your profile.', 'info');
-        const login = $id('loginIdInput');
-        if (login) login.focus();
-        return;
+      if (typeof clientMapGet === 'function' && S.clientProfiles) {
+        p = clientMapGet(S.clientProfiles, c.id) || {};
       }
-      const p = (typeof clientMapGet === 'function' && S.clientProfiles)
-        ? (clientMapGet(S.clientProfiles, c.id) || {}) : {};
+    } catch (e) { p = {}; }
 
-      // Basic fields — set only if present (never throw on missing ids).
-      const basic = [
-        ['peHeight', p.height_cm], ['peGender', p.gender], ['peBirth', p.birth_date],
-        ['peGoal', p.goal], ['peMedical', p.medical_notes], ['peEmergency', p.emergency_contact]
-      ];
-      basic.forEach(([id, val]) => {
+    // Basic fields — each assignment independent; a broken value can never
+    // stop the other fields or the modal itself.
+    const basic = [
+      ['peHeight', p.height_cm], ['peGender', p.gender], ['peBirth', p.birth_date],
+      ['peGoal', p.goal], ['peMedical', p.medical_notes], ['peEmergency', p.emergency_contact]
+    ];
+    basic.forEach(([id, val]) => {
+      try {
         const el = $id(id);
-        if (el) el.value = (val == null ? '' : String(val));
-      });
+        if (!el) return;
+        if (el.type === 'date') {
+          // Only accept real YYYY-MM-DD dates — old code crashed on 'null'.
+          const s = (val == null ? '' : String(val)).slice(0, 10);
+          el.value = /^\d{4}-\d{2}-\d{2}$/.test(s) ? s : '';
+        } else {
+          el.value = (val == null ? '' : String(val));
+        }
+      } catch (e) { /* field-level failure is non-fatal */ }
+    });
 
-      // 📌 Shared Inputs (fit_* columns) — prefill via calculators.js when
-      // available, otherwise fill the pc* fields directly from the profile.
+    // 📌 Shared Inputs (fit_* columns) — prefill via calculators.js when
+    // available, otherwise fill the pc* fields directly from the profile.
+    try {
       if (typeof window.prefillProfileCalcStats === 'function') {
-        try { window.prefillProfileCalcStats(p); } catch (e) { /* non-fatal */ }
+        window.prefillProfileCalcStats(p);
       } else {
         const fit = [
           ['pcWeight', p.fit_weight_kg], ['pcHeightCm', p.fit_height_cm], ['pcAge', p.fit_age],
@@ -79,25 +119,16 @@
             if (el && val && [...el.options].some(o => o.value === val)) el.value = val;
           });
       }
+    } catch (e) { console.warn('shared-input prefill failed (non-fatal):', e); }
 
-      // Switch to the Profile tab so the modal context is visible behind it.
+    // Switch to the Profile tab so the modal context is visible behind it.
+    try {
       const tabBtn = document.querySelector('.tab-btn[data-ctab="profile"]');
       if (tabBtn) tabBtn.click();
+    } catch (e) { /* cosmetic only */ }
 
-      const modal = $id('profileEditModal');
-      if (!modal) { showToastSafe('⚠️ Profile form not found — please reload the page.', 'error'); return; }
-      modal.classList.remove('hidden');
-      const st = $id('profileEditStatus');
-      if (st) st.textContent = '';
-      const first = $id('peHeight');
-      if (first) setTimeout(() => { try { first.focus(); } catch (e) {} }, 250);
-    } catch (err) {
-      console.error('tasOpenProfileEdit:', err);
-      // Last resort: still show the modal so the client is never stuck.
-      const modal = $id('profileEditModal');
-      if (modal) modal.classList.remove('hidden');
-      showToastSafe('⚠️ Prefill hiccup — you can still type your details and submit.', 'warning');
-    }
+    reveal();
+    focusFirst();
   };
 
   // ============================================================
@@ -157,13 +188,158 @@
       }
     };
   }
+  // 🛡️ IMPORTANT: never call stopPropagation() here. The profile-edit modal
+  // and the progress modal close when a click lands on their backdrop, and
+  // those overlay listeners live on the overlay ELEMENT — stopping bubbling
+  // at the document level used to swallow them, which made the modals feel
+  // "dead" (open → can't dismiss / confusing state). preventDefault keeps
+  // the button's native behaviour tidy without breaking anything.
   document.addEventListener('click', (e) => {
     const t = e.target;
     if (!t || !t.closest) return;
-    if (t.closest('#clientEditProfileBtn')) { e.preventDefault(); e.stopPropagation(); safe(window.tasOpenProfileEdit)(e); }
-    else if (t.closest('#clientAddProgressBtn')) { e.preventDefault(); e.stopPropagation(); safe(window.tasOpenAddEntry)(e); }
-    else if (t.closest('#calcPdfBtn')) { e.preventDefault(); e.stopPropagation(); safe(window.tasGenerateCalcPDF)(e); }
+    if (t.closest('#clientEditProfileBtn')) { e.preventDefault(); safe(window.tasOpenProfileEdit)(e); }
+    else if (t.closest('#clientAddProgressBtn')) { e.preventDefault(); safe(window.tasOpenAddEntry)(e); }
+    else if (t.closest('#calcPdfBtn')) { e.preventDefault(); safe(window.tasGenerateCalcPDF)(e); }
   }, true);
+
+  // ============================================================
+  // 3b · ✏️ EDIT PROFILE — self-contained open + submit flow
+  // ------------------------------------------------------------
+  // This block deliberately does NOT depend on main.js/progress.js having
+  // bound successfully: it wires the Cancel button, backdrop dismissal and
+  // the Submit-for-Approval action itself (with graceful fallbacks to the
+  // legacy handlers), so the Edit Profile feature works end-to-end even if
+  // another script failed earlier in the page.
+  // ============================================================
+  function closeProfileModal() {
+    const m = $id('profileEditModal');
+    if (m) { try { m.classList.add('hidden'); } catch (e) {} }
+  }
+
+  // Cancel button + click-on-backdrop (guarded, idempotent wiring).
+  (function wireProfileModalDismissal() {
+    const cancel = $id('cancelProfileEditBtn');
+    if (cancel && cancel.dataset.peCancelWired !== '1') {
+      cancel.dataset.peCancelWired = '1';
+      cancel.addEventListener('click', safe(() => {
+        closeProfileModal();
+        const st = $id('profileEditStatus');
+        if (st) st.textContent = '';
+      }));
+    }
+    const modal = $id('profileEditModal');
+    if (modal && modal.dataset.peBackdropWired !== '1') {
+      modal.dataset.peBackdropWired = '1';
+      modal.addEventListener('click', (e) => { if (e.target === modal) closeProfileModal(); });
+    }
+  })();
+
+  window.tasSubmitProfileEdit = async function () {
+    const S = window.APP_STATE;
+    const c = S && S.loggedInClient;
+    if (!c) { showToastSafe('🔐 Please sign in first.', 'info'); return; }
+    const statusEl = $id('profileEditStatus');
+    const sb = S.supabaseClient;
+    if (!sb || typeof sb.from !== 'function') {
+      if (statusEl) statusEl.textContent = '❌ Cloud connection not ready — please reload the page and try again.';
+      showToastSafe('❌ Not connected to the cloud yet. Reload and retry.', 'error');
+      return;
+    }
+    const btn = $id('submitProfileBtn');
+    const gv = (id) => { const el = $id(id); return el ? String(el.value || '').trim() : ''; };
+    const gn = (id) => { const n = parseFloat(gv(id)); return Number.isFinite(n) ? n : null; };
+    const proposed = {
+      height_cm: gn('peHeight'),
+      gender: gv('peGender') || null,
+      birth_date: /^\d{4}-\d{2}-\d{2}$/.test(gv('peBirth').slice(0, 10)) ? gv('peBirth').slice(0, 10) : null,
+      goal: gv('peGoal') || null,
+      medical_notes: gv('peMedical') || null,
+      emergency_contact: gv('peEmergency') || null,
+      // 📌 Shared Inputs (fit_* columns → powers the Calculators tab & PDF)
+      fit_weight_kg: gn('pcWeight'), fit_height_cm: gn('pcHeightCm'), fit_age: gn('pcAge'),
+      fit_gender: gv('pcGenderSel') || null, fit_activity_level: gv('pcActivity') || null,
+      fit_goal: gv('pcGoalSel') || null,
+      fit_waist_cm: gn('pcWaist'), fit_neck_cm: gn('pcNeck'), fit_hip_cm: gn('pcHip'),
+      fit_bench_kg: gn('pcBench'), fit_body_fat_pct: gn('pcBodyfat')
+    };
+    // Nothing changed? Don't spam the trainer with an empty approval.
+    const cur = (typeof clientMapGet === 'function' && S.clientProfiles)
+      ? (clientMapGet(S.clientProfiles, c.id) || {}) : {};
+    const hasChange = Object.keys(proposed).some(k => {
+      const a = proposed[k], b = cur[k];
+      if (a == null && (b == null || b === '')) return false;
+      return String(a) !== String(b);
+    });
+    if (!hasChange) {
+      if (statusEl) statusEl.textContent = 'ℹ️ Nothing to submit — your details are unchanged.';
+      return;
+    }
+    try {
+      if (btn) btn.disabled = true;
+      if (statusEl) statusEl.textContent = '⏳ Submitting…';
+      const { data, error } = await sb.from('profile_approvals')
+        .insert({ client_id: c.id, proposed_data: proposed, current_data: cur, status: 'pending' })
+        .select().single();
+      if (error && typeof window.isSchemaMissingError === 'function' && window.isSchemaMissingError(error)) {
+        // Migration not applied → retry WITHOUT the fit_* stats so the basic
+        // edit still reaches the trainer (run sql/pdf_calculator_fix.sql to
+        // enable the full calculator fields).
+        Object.keys(proposed).forEach(k => { if (k.startsWith('fit_')) delete proposed[k]; });
+        const retry = await sb.from('profile_approvals')
+          .insert({ client_id: c.id, proposed_data: proposed, current_data: cur, status: 'pending' })
+          .select().single();
+        if (retry.error) throw retry.error;
+        if (statusEl) statusEl.textContent = '✅ Submitted! ⚠️ Run sql/pdf_calculator_fix.sql in Supabase to enable calculator body stats.';
+        closeProfileModal();
+      } else if (error) {
+        throw error;
+      } else {
+        if (Array.isArray(S.profileApprovals)) S.profileApprovals.unshift(data);
+        closeProfileModal();
+        if (statusEl) statusEl.textContent = '✅ Submitted for approval! Your trainer will review it shortly.';
+        showToastSafe('✅ Profile changes submitted for approval!', 'success');
+      }
+      if (typeof window.syncClientPendingBanner === 'function') window.syncClientPendingBanner();
+      if (typeof window.updateApprovalsBadge === 'function') window.updateApprovalsBadge();
+    } catch (err) {
+      console.error('tasSubmitProfileEdit:', err);
+      const msg = (err && err.message) ? err.message : String(err);
+      if (statusEl) statusEl.textContent = '❌ ' + msg;
+      showToastSafe('❌ Could not submit: ' + msg, 'error');
+    } finally {
+      if (btn) btn.disabled = false;
+    }
+  };
+
+  // Wire the submit + cancel buttons directly as well (in addition to the
+  // main.js binding). Duplicate bindings are harmless because both paths
+  // converge on guarded functions, but this guarantees the buttons work
+  // even when main.js bind() aborted early.
+  (function wireProfileModalActions() {
+    const submit = $id('submitProfileBtn');
+    if (submit && submit.dataset.peSubmitWired !== '1') {
+      submit.dataset.peSubmitWired = '1';
+      submit.addEventListener('click', safe(() => {
+        // Prefer the legacy handler when it is fully functional; otherwise
+        // fall back to the self-contained one above. Both insert into
+        // profile_approvals — the fallback only runs if the legacy path
+        // throws before hitting the network (missing elements etc.).
+        if (typeof window.submitProfileEdit === 'function') {
+          try {
+            const r = window.submitProfileEdit();
+            if (r && typeof r.catch === 'function') r.catch((e) => {
+              console.warn('legacy submitProfileEdit failed, using fallback:', e);
+              window.tasSubmitProfileEdit();
+            });
+            return;
+          } catch (e) {
+            console.warn('legacy submitProfileEdit threw, using fallback:', e);
+          }
+        }
+        window.tasSubmitProfileEdit();
+      }));
+    }
+  })();
 
   // Delegated fallback for client tab switching (Plan/History/Progress/
   // Calculators/Profile): only attaches listeners for buttons that exist,
