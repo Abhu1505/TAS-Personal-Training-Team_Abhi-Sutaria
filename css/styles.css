@@ -1323,6 +1323,61 @@ img{max-width:100%;}
   .login-card{padding:0.65rem 0.8rem 0.65rem !important;}
 }
 
+/* ============================================================
+   COMPACT LOGIN CARD v13 — ULTRA-COMPACT login panel.
+   Root-cause fix for "looks unchanged": earlier rules were being
+   overridden by LATER blocks in this file (fluid-type block,
+   landscape-phone block, device-class rules). Every rule below is
+   prefixed `html body .login-card…` (higher specificity than any
+   other selector in this stylesheet) AND uses !important, so it
+   beats all of them regardless of source order.
+   ⚠ LOGO / PHOTO SIZES ARE DELIBERATELY UNTOUCHED
+     (still 200px desktop / 190px phone / 140px ≤400px).
+   ============================================================ */
+html body .login-card{padding:0.5rem 0.85rem 0.5rem !important;}
+html body .login-card .login-brand-row{margin:0 0 0.1rem !important;}
+html body .login-card .login-head{margin-top:0 !important;margin-bottom:0.1rem !important;}
+html body .login-card .login-head-top{margin-bottom:0.05rem !important;}
+html body .login-card h2{font-size:1.15rem !important;line-height:1.15 !important;margin-bottom:0.05rem !important;}
+html body .login-card .badge{margin-bottom:0 !important;}
+html body .login-card .subhead{margin-bottom:0.25rem !important;line-height:1.25 !important;font-size:0.78rem !important;}
+html body .login-card .cloud-status{margin-bottom:0.25rem !important;padding:0.25rem 0.7rem !important;}
+html body .login-card .input-group{margin-bottom:0.25rem !important;}
+html body .login-card label{margin-bottom:0.12rem !important;}
+html body .login-card input,
+html body .login-card select,
+html body .login-card textarea{min-height:40px !important;padding:0.5rem 0.8rem !important;}
+html body .login-card .btn-primary{margin-top:0.05rem !important;padding:0.5rem 1.2rem !important;min-height:40px !important;}
+html body .login-card .status-msg{margin-top:0.25rem !important;padding:0.45rem 0.7rem !important;line-height:1.3 !important;}
+html body .login-card .pwa-install-btn{margin-top:0.2rem !important;}
+
+/* Standalone installed app: slightly tighter still + notch clearance */
+@media (display-mode:standalone){
+  html body .login-card{padding:0.45rem 0.8rem 0.45rem !important;}
+  html body{padding-top:calc(0.5rem + var(--safe-t)) !important;}
+  #loginCard{scroll-margin-top:calc(0.3rem + var(--safe-t)) !important;}
+}
+
+/* Phones ≤480px */
+@media (max-width:480px){
+  html body .login-card{padding:0.4rem 0.7rem 0.4rem !important;}
+  html body .login-card h2{font-size:1.05rem !important;}
+}
+
+/* Landscape phones: the old block used LOOSE values — override them */
+@media (max-height:460px) and (orientation:landscape){
+  html body .login-card{padding:0.35rem 0.8rem !important;}
+  html body .login-card .login-brand-row{margin-bottom:0.1rem !important;}
+  html body .login-card .login-head{margin-bottom:0.1rem !important;}
+  html body .login-card .subhead{margin-bottom:0.2rem !important;}
+  html body .login-card .input-group{margin-bottom:0.2rem !important;}
+}
+
+/* Device-class rules run late in this file — beat those too */
+html.device-phone body .login-card,
+html.device-tablet body .login-card,
+html.device-laptop body .login-card{padding:0.5rem 0.85rem 0.5rem !important;}
+
 /* ---- Install helper chip (works everywhere, incl. iOS Safari) ---- */
 .pwa-install-btn{display:inline-flex;align-items:center;gap:.35rem;}
 .pwa-help-pop{position:fixed;z-index:10060;left:50%;bottom:calc(1rem + var(--safe-b));
