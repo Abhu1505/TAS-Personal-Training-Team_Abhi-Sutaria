@@ -138,6 +138,21 @@
   // ---------- cloud/local persistence ----------
   function lsKey(id) { return LS_PREFIX + String(id); }
 
+  // 📌 True while this client has a PENDING profile submission. Used by the
+  // approval gate (live typing must NOT flow into the calculator cards until
+  // the trainer approves). The authoritative list is APP_STATE.profileApprovals
+  // (loaded at boot and refreshed every 60 s by js/notifications.js), plus a
+  // lightweight localStorage flag set right after "📩 Save to Profile" so the
+  // gate also works between refreshes / offline.
+  window.clientProfileApprovalPending = function (clientId) {
+    if (!clientId || clientId === 'guest') return false;
+    try {
+      if (localStorage.getItem('tas_profile_pending:' + String(clientId)) === '1') return true;
+    } catch (e) { }
+    const S = window.APP_STATE || {};
+    return (S.profileApprovals || []).some(a => sameId(a.client_id, clientId) && a.status === 'pending');
+  };
+
   // 📌 APPROVAL GATE — one-time purge of LEGACY draft rows. Older builds
   // autosaved every keystroke from the Profile form into fitness_inputs /
   // localStorage WITHOUT approval. Those unapproved drafts must never show
@@ -187,6 +202,20 @@
     let loaded = null;
     let prof = null;
     if (clientId && clientId !== 'guest') {
+      // 🔄 Self-heal the local "pending" gate flag against the authoritative
+      // profile_approvals list: cleared on approve/reject, but a trainer who
+      // decided from ANOTHER device never clears this browser's copy. Without
+      // this check the client's live typing would stay blocked forever after
+      // an approval that happened elsewhere.
+      try {
+        const pendFlag = 'tas_profile_pending:' + String(clientId);
+        if (localStorage.getItem(pendFlag) === '1' && APP_STATE.supabaseClient) {
+          const { data: pendRow } = await APP_STATE.supabaseClient.from('profile_approvals')
+            .select('status').eq('client_id', String(clientId)).eq('status', 'pending')
+            .order('submitted_at', { ascending: false }).limit(1).maybeSingle();
+          if (!pendRow) localStorage.removeItem(pendFlag);
+        }
+      } catch (e) { /* offline — keep the local flag as-is */ }
       // 📌 APPROVED-ONLY: the hub never adopts unapproved drafts from
       // fitness_inputs or localStorage. The single source of truth for a
       // client's calculator values is their APPROVED profile (client_profiles
@@ -281,6 +310,15 @@
         p = data || null;
       }
     } catch (e) { /* migration not run — nothing to sync */ }
+    // 🔄 Freshness guard: when called right after a trainer approval, the
+    // in-memory cache was just updated by js/approvals.js but the cloud read
+    // above may race / fail. If the local copy carries approved fit_* stats
+    // that the fresh row lacks, prefer the local (just-approved) copy.
+    try {
+      const localP = (typeof clientMapGet === 'function' && clientMapGet(APP_STATE.clientProfiles, clientId)) || null;
+      if (localP && window.profileHasCalcStats(localP) &&
+          (!p || !window.profileHasCalcStats(p))) p = localP;
+    } catch (e) { }
     if (!p) p = (typeof clientMapGet === 'function' && clientMapGet(APP_STATE.clientProfiles, clientId)) || null;
     if (!p || !window.profileHasCalcStats(p)) return;
     const stats = window.profileCalcStats(p);
@@ -407,6 +445,13 @@
     const el = e.target.closest ? e.target.closest('[data-fitkey]') : null;
     if (!el) return;
     if (el.dataset.calcscope === 'client' && !window.APP_STATE?.loggedInClient) return;
+    // 📌 APPROVAL GATE: while a client profile submission is PENDING, the
+    // cards must keep showing the last APPROVED numbers — typing in the
+    // Profile form only PREVIEWs once there is no pending approval (or for
+    // the trainer's own admin workspace). Without this guard, unapproved
+    // keystrokes would instantly flow into all 15 calculator cards.
+    if (el.dataset.calcscope === 'client' && window.clientProfileApprovalPending
+        && window.clientProfileApprovalPending(APP_STATE.loggedInClient.id)) return;
     const key = el.dataset.fitkey;
     const def = FIELDS.find(f => f[0] === key);
     if (!def) return;

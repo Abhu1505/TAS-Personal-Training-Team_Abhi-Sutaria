@@ -817,6 +817,37 @@
      renderClientProfile + submitProfileFromView). The old pcWeight/peHeight
      ids no longer exist anywhere. -->
 
+<!-- 🔄 WEEKLY PROFILE UPDATE REMINDER — auto popup (js/progress.js).
+     Shows once every 7 days for signed-in clients that already have an
+     APPROVED profile, asking them to review & re-submit their details so
+     all 15 calculators regenerate from fresh data. On the trainer's NEXT
+     approval the previous approved data is archived into 📈 Progress
+     automatically (snapshot-on-re-approval in js/approvals.js). -->
+<div id="weeklyProfileModal" class="modal-overlay hidden">
+  <div class="modal-box">
+    <div class="modal-header orange">
+      <h3>🔄 Time to update your profile!</h3>
+      <p>Weekly check-in — keep your numbers fresh</p>
+    </div>
+    <div class="modal-body">
+      <button class="panel-close-x" type="button" id="wprCloseX" aria-label="Close">✕</button>
+      <p style="font-size:0.88rem;line-height:1.6;margin:0 0 0.6rem;">
+        It has been <strong>a week</strong> since your profile was last approved. Your weight, measurements and goals change over time — and <strong>all 15 calculators run on these approved values</strong>.
+      </p>
+      <ul style="font-size:0.84rem;line-height:1.7;margin:0 0 0.8rem;padding-left:1.2rem;color:var(--text);">
+        <li>Open <strong>👤 My Profile</strong>, review 👤 Basic Details + 📌 Shared Inputs.</li>
+        <li>Update anything that changed and press <strong>“📩 Save to Profile”</strong>.</li>
+        <li>Your trainer approves it → calculators regenerate with the new data.</li>
+        <li>The previous approved snapshot is saved automatically in <strong>📈 Progress</strong>.</li>
+      </ul>
+      <div class="modal-actions">
+        <button type="button" class="btn-admin" id="wprUpdateBtn">📝 Update my profile now</button>
+        <button type="button" class="btn-secondary" id="wprLaterBtn">⏰ Remind me later</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 </div><!-- /unified-wrap -->
 
 <!-- ===== Footer: professional compact layout (brand + nav columns + legal bar) ===== -->
