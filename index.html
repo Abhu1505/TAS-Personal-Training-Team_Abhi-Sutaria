@@ -979,19 +979,23 @@
   // Open a modal-overlay OR an admin panel (settingsPanel uses .hidden too).
   function openFooterTarget(id) {
     var el = document.getElementById(id);
-    if (!el) return;
     var S = window.APP_STATE || {};
+    if (id === 'profileEditModal') {
+      // ✏️ Edit Profile modal was merged INTO 👤 My Profile — the element
+      // no longer exists. BUG FIX: the old code bailed out on the missing
+      // element above, so the footer quick-link was dead. Route to the
+      // Profile tab instead (same behaviour as window.tasOpenProfileEdit).
+      if (typeof window.tasOpenProfileEdit === 'function') { window.tasOpenProfileEdit(); return; }
+      var tabBtn = document.querySelector('.tab-btn[data-ctab="profile"]');
+      if (tabBtn) tabBtn.click();
+      return;
+    }
+    if (!el) return;
     if (el.id === 'progressModal') {
       // Same entry point the "Add My Progress" button uses.
       if (typeof window.openProgressModal === 'function' && S.loggedInClient) {
         window.openProgressModal(null, S.loggedInClient.id, 'client');
       }
-    } else if (el.id === 'profileEditModal') {
-      // ✏️ Edit Profile modal was merged INTO 👤 My Profile — the single
-      // inline form there (basic details + 📌 Shared Inputs) is submitted
-      // for approval at once. Route any old link to the Profile tab.
-      var tabBtn = document.querySelector('.tab-btn[data-ctab="profile"]');
-      if (tabBtn) tabBtn.click();
     } else if (el.id === 'dayLogModal') {
       if (typeof window.openDayLogModal === 'function') {
         window.openDayLogModal(S.selectedDay || new Date().getDate());

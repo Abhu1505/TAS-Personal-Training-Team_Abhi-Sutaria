@@ -1671,6 +1671,15 @@ input.calc-input[type=number]{-moz-appearance:textfield;}
 @media (min-width:680px){.profile-calc-grid{grid-template-columns:repeat(3,minmax(0,1fr));}}
 .profile-calc-grid .input-group{margin-bottom:0;}
 
+/* 👤 My Profile — merged inline editor (rendered by js/progress.js).
+   These classes had NO rules at all before, so the hint/note/empty
+   states rendered unstyled and the "saved ✓" note never hid itself. */
+.profile-shared-hint{background:var(--info-bg,#e4eef9);border-left:5px solid #2b6e9e;color:#1a4b6e;padding:.75rem .9rem;border-radius:var(--r-sm);margin-bottom:.9rem;font-size:.82rem;line-height:1.5;}
+[data-theme="dark"] .profile-shared-hint{background:rgba(43,110,158,.16);color:var(--text);}
+.profile-shared-inputs{margin-bottom:.2rem;}
+.profile-shared-note{font-size:.7rem;font-weight:700;color:var(--success,#1c8a4c);}
+.profile-calc-empty{padding:.85rem 1rem;border:1px dashed var(--line);border-radius:var(--r-sm);color:var(--muted);font-size:.82rem;line-height:1.5;margin-top:.4rem;}
+
 /* reduced motion */
 @media (prefers-reduced-motion:reduce){
   .calc-card,.calc-sticky-head *{animation:none !important; transition:none !important;}
