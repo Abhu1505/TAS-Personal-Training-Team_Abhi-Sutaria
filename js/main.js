@@ -252,33 +252,37 @@
     // Progress modal
     $('cancelProgressBtn').addEventListener('click', () => $('progressModal').classList.add('hidden'));
     $('saveProgressBtn').addEventListener('click', saveProgress);
-    $('adminAddProgressBtn').addEventListener('click', () => {
-      if (APP_STATE.selectedClientId) openProgressModal(null, APP_STATE.selectedClientId, 'admin');
+    // ➕ Add Entry — routed through the guarded opener in js/client-portal.js
+    // (lazy lookup + try/catch, works even if main.js bind() partially failed).
+    const adminAddBtn = $('adminAddProgressBtn');
+    if (adminAddBtn) adminAddBtn.addEventListener('click', () => {
+      if (!APP_STATE.selectedClientId) return;
+      if (typeof window.openProgressModal === 'function') openProgressModal(null, APP_STATE.selectedClientId, 'admin');
     });
-    $('clientAddProgressBtn').addEventListener('click', () => {
-      if (APP_STATE.loggedInClient) openProgressModal(null, APP_STATE.loggedInClient.id, 'client');
+    const clientAddBtn = $('clientAddProgressBtn');
+    if (clientAddBtn) clientAddBtn.addEventListener('click', () => {
+      if (typeof window.tasOpenAddEntry === 'function') window.tasOpenAddEntry();
+      else if (APP_STATE.loggedInClient && typeof window.openProgressModal === 'function') {
+        openProgressModal(null, APP_STATE.loggedInClient.id, 'client');
+      }
     });
 
     // Profile edit modal
     $('cancelProfileEditBtn').addEventListener('click', () => $('profileEditModal').classList.add('hidden'));
     $('submitProfileBtn').addEventListener('click', submitProfileEdit);
-    $('clientEditProfileBtn').addEventListener('click', () => {
-      if (!APP_STATE.loggedInClient) return;
-      const p = clientMapGet(APP_STATE.clientProfiles, APP_STATE.loggedInClient.id) || {};
-      $('peHeight').value = p.height_cm || '';
-      $('peGender').value = p.gender || '';
-      $('peBirth').value = p.birth_date || '';
-      $('peGoal').value = p.goal || '';
-      $('peMedical').value = p.medical_notes || '';
-      $('peEmergency').value = p.emergency_contact || '';
-      // 🧮 Calculator Body Stats section — prefill from the approved profile
-      // (fit_* columns), falling back to whatever the calculator hub currently
-      // has saved for this client, then to the hub defaults.
-      if (typeof window.prefillProfileCalcStats === 'function') {
-        window.prefillProfileCalcStats(p);
+    // ✏️ Edit Profile — same guarded routing as above.
+    const clientEditBtn = $('clientEditProfileBtn');
+    if (clientEditBtn) clientEditBtn.addEventListener('click', () => {
+      if (typeof window.tasOpenProfileEdit === 'function') window.tasOpenProfileEdit();
+      else if (APP_STATE.loggedInClient) {
+        const p = clientMapGet(APP_STATE.clientProfiles, APP_STATE.loggedInClient.id) || {};
+        [['peHeight', p.height_cm], ['peGender', p.gender], ['peBirth', p.birth_date],
+         ['peGoal', p.goal], ['peMedical', p.medical_notes], ['peEmergency', p.emergency_contact]]
+          .forEach(([id, v]) => { const el = $(id); if (el) el.value = v == null ? '' : String(v); });
+        if (typeof window.prefillProfileCalcStats === 'function') window.prefillProfileCalcStats(p);
+        $('profileEditModal').classList.remove('hidden');
+        clearStatus($('profileEditStatus'));
       }
-      $('profileEditModal').classList.remove('hidden');
-      clearStatus($('profileEditStatus'));
     });
 
     // Wipe modal
