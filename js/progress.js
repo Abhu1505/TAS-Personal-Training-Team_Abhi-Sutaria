@@ -399,7 +399,7 @@ window.renderClientProfile = function (c) {
       <div class="input-group"><label for="pfEmergency">Emergency contact</label><input type="text" id="pfEmergency" placeholder="Name + phone"></div>
     </div>
     ${sharedHtml ? `
-    <div class="profile-calc-divider">📌 Shared Inputs — entered once, used by all 15 calculators
+    <div class="profile-calc-divider">📌 Shared Inputs <span>— entered once, used by all 15 calculators</span>
       <span class="profile-shared-note hidden" id="profileSharedNote"></span>
     </div>
     <div class="profile-shared-inputs profile-calc-grid" id="profileSharedInputs">${sharedHtml}</div>` : `
