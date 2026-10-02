@@ -1805,3 +1805,33 @@ input.calc-input[type=number]{-moz-appearance:textfield;}
 
 /* ---------- Timer action buttons: keep btn-primary compact inside tools ---------- */
 .timer-actions .btn-primary, .water-actions .btn-primary{width:auto; flex:0 0 auto;}
+/* 📈 Progress insights panel */
+.insights-panel .insight-summary{display:flex;flex-wrap:wrap;gap:.4rem;margin-bottom:.8rem;}
+.insight-chip{font-size:.74rem;font-weight:700;padding:.3rem .7rem;border-radius:999px;background:rgba(31,78,61,.08);color:var(--brand-deep,#1f4e3d);}
+[data-theme="dark"] .insight-chip{background:rgba(46,204,113,.12);color:#7fdcae;}
+.insight-charts{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:.8rem;}
+.chart-wrap{background:rgba(0,0,0,.02);border:1px solid rgba(0,0,0,.06);border-radius:var(--r-md,12px);padding:.6rem .7rem;}
+[data-theme="dark"] .chart-wrap{background:rgba(255,255,255,.03);border-color:rgba(255,255,255,.08);}
+.chart-head{display:flex;justify-content:space-between;align-items:baseline;gap:.5rem;flex-wrap:wrap;margin-bottom:.2rem;}
+.chart-title{font-size:.78rem;font-weight:800;}
+.chart-meta{font-size:.68rem;color:#9aa;}
+.chart-svg{width:100%;height:auto;display:block;}
+.chart-bar{transition:opacity .2s;}
+.chart-empty{font-size:.75rem;color:#9aa;text-align:center;padding:1.4rem .5rem;}
+.insight-kpis-title{font-size:.8rem;font-weight:800;margin:1rem 0 .5rem;}
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:.6rem;}
+.kpi-tile{background:rgba(0,0,0,.02);border:1px solid rgba(0,0,0,.06);border-left:3px solid var(--kpi,#1f4e3d);border-radius:var(--r-md,12px);padding:.6rem .7rem;transition:transform .18s,box-shadow .18s;}
+.kpi-tile:hover{transform:translateY(-2px);box-shadow:0 6px 16px rgba(0,0,0,.08);}
+[data-theme="dark"] .kpi-tile{background:rgba(255,255,255,.03);border-color:rgba(255,255,255,.08);}
+.kpi-icon{font-size:1rem;}
+.kpi-label{font-size:.64rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#9aa;margin-top:.15rem;}
+.kpi-value{font-size:1.05rem;font-weight:800;line-height:1.2;}
+.kpi-sub{font-size:.66rem;color:#9aa;margin-top:.15rem;}
+.insights-note{grid-column:1/-1;font-size:.78rem;color:#9aa;padding:.6rem;}
+/* ✨ Motivation popup */
+.motivation-box .modal-body{text-align:center;padding:1.6rem 1.4rem 1.3rem;}
+.mot-emoji{font-size:2.6rem;margin:.2rem 0 .6rem;animation:quote-pop .5s ease;}
+.mot-quote{font-size:1.05rem;font-weight:700;line-height:1.55;max-width:34rem;margin:0 auto;}
+.mot-date{font-size:.72rem;color:#9aa;margin-top:.6rem;}
+.mot-actions{justify-content:center;gap:.6rem;}
+@media (prefers-reduced-motion:reduce){.kpi-tile:hover{transform:none;}.mot-emoji{animation:none;}}
