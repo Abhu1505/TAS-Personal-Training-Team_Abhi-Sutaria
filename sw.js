@@ -14,7 +14,7 @@
    ============================================================ */
 'use strict';
 
-const VERSION = 'tas-pwa-v23';
+const VERSION = 'tas-pwa-v24';
 const SHELL_CACHE   = VERSION + '-shell';
 const RUNTIME_CACHE = VERSION + '-runtime';
 
@@ -51,6 +51,14 @@ self.addEventListener('activate', (e) => {
   e.waitUntil(
     caches.keys()
       .then((keys) => Promise.all(keys.filter((k) => !k.startsWith(VERSION)).map((k) => caches.delete(k))))
+      // 🛡️ Self-heal: if an OLD service worker ever cached the critical app
+      // scripts without network-fresh headers, purge those exact entries so
+      // the next load always fetches the fixed versions from the server.
+      .then(() => caches.open(SHELL_CACHE))
+      .then((c) => Promise.all([
+        './js/main.js', './js/client-portal.js', './js/calculators.js',
+        './vendor/jspdf.umd.min.js'
+      ].map((u) => c.delete(u))))
       .then(() => self.clients.claim())
   );
 });

@@ -147,13 +147,42 @@
   //     duplicate bindings are harmless because we route through
   //     the guarded openers above.
   // ============================================================
+  // 🛡️ Each handler is individually try/catch wrapped: a failure in one
+  // action can never break the others (this was the original bug pattern).
+  function safe(fn) {
+    return function (e) {
+      try { fn(e); } catch (err) {
+        console.error('[client-portal] handler failed:', err);
+        showToastSafe('⚠️ Something went wrong: ' + (err && err.message ? err.message : err), 'error');
+      }
+    };
+  }
   document.addEventListener('click', (e) => {
     const t = e.target;
     if (!t || !t.closest) return;
-    if (t.closest('#clientEditProfileBtn')) { e.preventDefault(); e.stopPropagation(); window.tasOpenProfileEdit(); }
-    else if (t.closest('#clientAddProgressBtn')) { e.preventDefault(); e.stopPropagation(); window.tasOpenAddEntry(); }
-    else if (t.closest('#calcPdfBtn')) { e.preventDefault(); e.stopPropagation(); window.tasGenerateCalcPDF(); }
+    if (t.closest('#clientEditProfileBtn')) { e.preventDefault(); e.stopPropagation(); safe(window.tasOpenProfileEdit)(e); }
+    else if (t.closest('#clientAddProgressBtn')) { e.preventDefault(); e.stopPropagation(); safe(window.tasOpenAddEntry)(e); }
+    else if (t.closest('#calcPdfBtn')) { e.preventDefault(); e.stopPropagation(); safe(window.tasGenerateCalcPDF)(e); }
   }, true);
+
+  // Delegated fallback for client tab switching (Plan/History/Progress/
+  // Calculators/Profile): only attaches listeners for buttons that exist,
+  // and works even if main.js bind() ever fails on an unrelated element.
+  function ensureClientTabBindings() {
+    document.querySelectorAll('.tab-btn[data-ctab]').forEach(btn => {
+      if (btn.dataset.ctabBound === '1') return;
+      btn.dataset.ctabBound = '1';
+      btn.addEventListener('click', safe(() => {
+        const tab = btn.dataset.ctab;
+        document.querySelectorAll('.tab-btn[data-ctab]').forEach(b => b.classList.toggle('active', b === btn));
+        document.querySelectorAll('.tab-content[id^="ctab-"]').forEach(tEl => tEl.classList.toggle('hidden', tEl.id !== 'ctab-' + tab));
+        if (tab === 'calculators' && typeof window.injectTasPdfButton === 'function') window.injectTasPdfButton();
+      }));
+    });
+  }
+  ensureClientTabBindings();
+  // Re-run after render cycles (dashboard re-renders may replace markup).
+  setInterval(ensureClientTabBindings, 2500);
 
   // Backstop: if the app boots while a modal is somehow left open, close it.
   document.addEventListener('keydown', (e) => {
@@ -178,18 +207,21 @@
   window.loadJsPDF = function () {
     if (window.jspdf && window.jspdf.jsPDF) return Promise.resolve(window.jspdf.jsPDF);
     if (pdfLoading) return pdfLoading;
+    // Try the locally-bundled engine first (offline/PWA-safe), then the CDN.
+    // 🛡️ If a stale service worker serves an HTML error page instead of the
+    // local file, window.jspdf will be missing after load — treat that as a
+    // failure and fall through to the CDN instead of hanging/throwing later.
     const inject = (src) => new Promise((resolve, reject) => {
       const s = document.createElement('script');
       s.src = src;
       s.async = true;
       s.onload = () => {
         if (window.jspdf && window.jspdf.jsPDF) resolve(window.jspdf.jsPDF);
-        else reject(new Error('jsPDF loaded but global missing'));
+        else reject(new Error('jsPDF loaded but global missing from ' + src));
       };
       s.onerror = () => reject(new Error('Failed to load ' + src));
       document.head.appendChild(s);
     });
-    // Try the locally-bundled engine first (offline/PWA-safe), then the CDN.
     pdfLoading = inject(JSPDF_LOCAL)
       .catch(() => inject(JSPDF_CDN))
       .then((ctor) => { pdfLoading = null; return ctor; })
@@ -666,6 +698,8 @@
       '<span class="calc-pdf-hint">Branded multi-page report · charts, KPIs &amp; progress trends</span>';
     head.appendChild(wrap);
   }
+  // Exposed so tab-switching (and any late hub re-render) can force a retry.
+  window.injectTasPdfButton = injectPdfButton;
   function startInjector() {
     injectPdfButton();
     const target = document.getElementById('ctab-calculators');
