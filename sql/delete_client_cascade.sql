@@ -332,3 +332,20 @@ ghosts as (
     and lower(x.client_id) <> all (array(select lower(k) from alive))
 )
 delete from public.client_settings cs using ghosts g where cs.client_id = g.client_id;
+
+-- ------------------------------------------------------------
+-- 🧮 FITNESS CALCULATOR HUB — ghost saved inputs (sql/fitness_calculator.sql)
+--    Removes fitness_inputs rows for clients that no longer exist, so a
+--    deleted client's calculator data never lingers or "comes back".
+-- ------------------------------------------------------------
+with alive as (
+  select id::text as k from public.clients
+  union all
+  select upper(login_id) from public.clients
+), ghosts as (
+  select distinct f.client_id
+  from public.fitness_inputs f
+  where f.client_id is not null
+    and lower(f.client_id) <> all (array(select lower(k) from alive))
+)
+delete from public.fitness_inputs fi using ghosts g where fi.client_id = g.client_id;
