@@ -3,12 +3,15 @@ from playwright.sync_api import sync_playwright
 
 URL = "http://localhost:8137/index.html"
 MOCK = "/workspace/tmp/test/mock_supabase.js"
-EXE = "/root/.cache/ms-playwright/chromium-1234/chrome-linux64/chrome"
+import glob, os
+_cands = sorted(glob.glob("/root/.cache/ms-playwright/chromium-*/chrome-linux*/chrome"))
+EXE = _cands[-1] if _cands else None  # fall back to playwright's bundled chromium
 
 def run():
     results = []
     with sync_playwright() as p:
-        browser = p.chromium.launch(executable_path=EXE, args=["--no-sandbox"])
+        browser = (p.chromium.launch(executable_path=EXE, args=["--no-sandbox"])
+                   if EXE else p.chromium.launch(args=["--no-sandbox"]))
         ctx = browser.new_context(viewport={"width": 1280, "height": 900})
         page = ctx.new_page()
         errors = []

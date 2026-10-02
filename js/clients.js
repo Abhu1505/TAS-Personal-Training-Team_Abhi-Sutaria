@@ -2,6 +2,8 @@ window.renderClientList = function () {
   const container = $('clientListContainer');
   if (!container) return;
   const searchEl = $('clientSearchInput');
+  // Normalize the query to lowercase so case-insensitive matching works
+  // even when the user types an uppercase login ID (e.g. "ALI-9786").
   const q = (searchEl && searchEl.value || '').trim().toLowerCase();
   const countEl = $('clientSearchCount');
 

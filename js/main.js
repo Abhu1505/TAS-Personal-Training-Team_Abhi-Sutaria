@@ -370,7 +370,8 @@
     document.addEventListener('keydown', (e) => {
       if (e.key !== 'Escape') return;
       document.querySelectorAll('.modal-overlay:not(.hidden)').forEach(m => m.classList.add('hidden'));
-      ['settingsPanel', 'libraryPanel', 'approvalsPanel', 'classTimesPanel'].forEach(id => {
+      ['settingsPanel', 'libraryPanel', 'approvalsPanel', 'classTimesPanel',
+        'reportsPanel', 'requestsPanel'].forEach(id => {
         const el = $(id); if (el) el.classList.add('hidden');
       });
     });
