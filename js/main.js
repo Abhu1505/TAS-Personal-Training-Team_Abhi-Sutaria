@@ -279,23 +279,10 @@
       }
     });
 
-    // Profile edit modal
-    on('cancelProfileEditBtn', 'click', () => $('profileEditModal').classList.add('hidden'));
-    on('submitProfileBtn', 'click', submitProfileEdit);
-    // ✏️ Edit Profile — same guarded routing as above.
-    const clientEditBtn = $('clientEditProfileBtn');
-    if (clientEditBtn) clientEditBtn.addEventListener('click', () => {
-      if (typeof window.tasOpenProfileEdit === 'function') window.tasOpenProfileEdit();
-      else if (APP_STATE.loggedInClient) {
-        const p = clientMapGet(APP_STATE.clientProfiles, APP_STATE.loggedInClient.id) || {};
-        [['peHeight', p.height_cm], ['peGender', p.gender], ['peBirth', p.birth_date],
-         ['peGoal', p.goal], ['peMedical', p.medical_notes], ['peEmergency', p.emergency_contact]]
-          .forEach(([id, v]) => { const el = $(id); if (el) el.value = v == null ? '' : String(v); });
-        if (typeof window.prefillProfileCalcStats === 'function') window.prefillProfileCalcStats(p);
-        $('profileEditModal').classList.remove('hidden');
-        clearStatus($('profileEditStatus'));
-      }
-    });
+    // ✏️ Edit Profile modal was MERGED into 👤 My Profile (js/progress.js
+    // renders one inline form: basic details + 📌 Shared Inputs, submitted
+    // for approval together via "📩 Save to Profile"). The old modal's
+    // buttons no longer exist, so nothing is bound here anymore.
 
     // Wipe modal
     on('clearAllBtn', 'click', openWipeModal);

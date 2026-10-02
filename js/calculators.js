@@ -743,15 +743,16 @@
     });
   }
 
-  // ---------- profile-edit prefill (✏️ Edit Profile modal) ----------
-  // Fills the "📌 Shared Inputs" section of the client's 👤 My Profile tab
-  // and the matching section of the profile-edit modal. Priority: approved
-  // fit_* profile columns → the hub state that is currently loaded for this
-  // client → spec defaults.
+  // ---------- profile form prefill (👤 My Profile merged inline editor) ----------
+  // Fills the "📌 Shared Inputs" section of the client's 👤 My Profile form
+  // (rendered by js/progress.js → renderClientProfile; the old ✏️ Edit
+  // Profile modal with its pc* inputs was merged into that one form).
+  // Priority: approved fit_* profile columns → the hub state that is
+  // currently loaded for this client → spec defaults.
   const PROFILE_STAT_INPUTS = {
-    weight: 'pcWeight', height: 'pcHeightCm', age: 'pcAge', gender: 'pcGenderSel',
-    activity: 'pcActivity', goal: 'pcGoalSel', waist: 'pcWaist', neck: 'pcNeck',
-    hip: 'pcHip', bench: 'pcBench', bodyfat: 'pcBodyfat'
+    weight: 'pcx-weight', height: 'pcx-height', age: 'pcx-age', gender: 'pcx-gender',
+    activity: 'pcx-activity', goal: 'pcx-goal', waist: 'pcx-waist', neck: 'pcx-neck',
+    hip: 'pcx-hip', bench: 'pcx-bench', bodyfat: 'pcx-bodyfat'
   };
   window.prefillProfileCalcStats = function (profileRow, targetIds) {
     const stats = Object.assign({}, DEFAULTS);
