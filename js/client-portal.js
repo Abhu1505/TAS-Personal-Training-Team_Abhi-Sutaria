@@ -256,13 +256,37 @@
       if (typeof window.profileHasCalcStats === 'function' && window.profileHasCalcStats(p)) {
         Object.assign(stats, window.profileCalcStats(p));
       }
-      // Live inputs currently shown in the profile shared panel take priority.
-      const liveMap = { weight: 'pcx-weight', height: 'pcx-height', age: 'pcx-age', gender: 'pcx-gender', activity: 'pcx-activity', goal: 'pcx-goal', waist: 'pcx-waist', neck: 'pcx-neck', hip: 'pcx-hip', bench: 'pcx-bench', bodyfat: 'pcx-bodyfat' };
-      Object.entries(liveMap).forEach(([k, id]) => {
-        const el = $id(id);
+      // 🛡️ FIX: the Shared Inputs on 👤 My Profile use ids pcWeight/pcHeightCm/…
+      // (see PROFILE_STAT_INPUTS in calculators.js). The old code looked for
+      // non-existent "pcx-*" ids, so live edits were silently ignored and
+      // empty/NaN fields leaked into the geometry below → jsPDF threw
+      // "Invalid argument passed to jsPDF.f2". Read the REAL inputs now,
+      // falling back to the legacy ids just in case.
+      const liveMap = {
+        weight: ['pcWeight', 'pcx-weight'], height: ['pcHeightCm', 'pcx-height'],
+        age: ['pcAge', 'pcx-age'], gender: ['pcGenderSel', 'pcx-gender'],
+        activity: ['pcActivity', 'pcx-activity'], goal: ['pcGoalSel', 'pcx-goal'],
+        waist: ['pcWaist', 'pcx-waist'], neck: ['pcNeck', 'pcx-neck'],
+        hip: ['pcHip', 'pcx-hip'], bench: ['pcBench', 'pcx-bench'],
+        bodyfat: ['pcBodyfat', 'pcx-bodyfat']
+      };
+      Object.entries(liveMap).forEach(([k, ids]) => {
+        let el = null;
+        for (const id of ids) { el = $id(id); if (el) break; }
         if (!el) return;
         if (el.tagName === 'SELECT') { if (el.value) stats[k] = el.value; }
         else { const n = parseFloat(el.value); if (Number.isFinite(n)) stats[k] = n; }
+      });
+      // 🛡️ Never let NaN/empty strings reach the renderer or the math:
+      // any stat that isn't a finite number (or known text option) reverts
+      // to the safe default.
+      Object.keys(stats).forEach(k => {
+        if (k === 'gender' || k === 'activity' || k === 'goal') {
+          if (typeof stats[k] !== 'string' || !stats[k]) stats[k] = window.__calcDefaults ? window.__calcDefaults[k] : '—';
+        } else {
+          const n = parseFloat(stats[k]);
+          stats[k] = Number.isFinite(n) ? n : (window.__calcDefaults ? window.__calcDefaults[k] : 0);
+        }
       });
 
       const R = computeCalcResults(stats);
@@ -275,35 +299,41 @@
       const PW = 210, PH = 297, M = 14, CW = PW - M * 2;
       let y = 0;
 
-      // 🛡️ Geometry sanitizer — jsPDF throws "Invalid number passed to rect/
-      // triangle/circle" whenever any coordinate is NaN/Infinity (which happens
-      // when age/weight/maxHr etc. are missing). Clamp everything to finite.
-      const nz = (v, d) => (Number.isFinite(v) ? v : (d === undefined ? 0 : d));
+      // 🛡️ Geometry sanitizer — jsPDF 2.5.2 throws "Invalid argument passed to
+      // jsPDF.f2 / f3" (the internal float formatters) whenever ANY coordinate
+      // or color component is NaN/Infinity, and it rejects RGB colors passed
+      // as an ARRAY — they must be spread as separate numbers. Everything
+      // below is clamped through nz()/rgb() so no NaN can ever reach jsPDF.
+      const nz = (v, d) => { const n = Number(v); return Number.isFinite(n) ? n : (d === undefined ? 0 : d); };
       const nzw = (v) => Math.max(0, nz(v, 0));           // widths/heights ≥ 0
-      const rgb = (arr) => arr;
+      const rgb = (arr) => (Array.isArray(arr) ? arr.map(v => nz(v, 0)) : [nz(arr, 0), nz(arr, 0), nz(arr, 0)]);
       const text = (str, x, yy, size, color, style, align) => {
         doc.setFont('helvetica', style || 'normal');
         doc.setFontSize(nz(size, 8));
-        doc.setTextColor(rgb(color));
-        doc.text(String(str), nz(x), nz(yy), { align: align || 'left' });
+        const col = rgb(color);
+        doc.setTextColor(col[0], col[1], col[2]);
+        doc.text(String(str == null ? '' : str), nz(x), nz(yy), { align: align || 'left' });
       };
       const rect = (x, yy, w, h, fill, r) => {
         w = nzw(w); h = nzw(h);
         if (w <= 0 || h <= 0) return;
-        doc.setFillColor(rgb(fill));
-        if (r) doc.roundedRect(nz(x), nz(yy), w, h, nz(r), nz(r), 'F');
+        const col = rgb(fill);
+        doc.setFillColor(col[0], col[1], col[2]);
+        if (r) doc.roundedRect(nz(x), nz(yy), w, h, nz(r, 2), nz(r, 2), 'F');
         else doc.rect(nz(x), nz(yy), w, h, 'F');
       };
       const stroke = (x, yy, w, h, color, lw, r) => {
         w = nzw(w); h = nzw(h);
         if (w <= 0 || h <= 0) return;
-        doc.setDrawColor(rgb(color));
-        doc.setLineWidth(nz(lw, 0.3) || 0.3);
-        if (r) doc.roundedRect(nz(x), nz(yy), w, h, nz(r), nz(r), 'S');
+        const col = rgb(color);
+        doc.setDrawColor(col[0], col[1], col[2]);
+        doc.setLineWidth(Math.max(0.1, nz(lw, 0.3)));
+        if (r) doc.roundedRect(nz(x), nz(yy), w, h, nz(r, 2), nz(r, 2), 'S');
         else doc.rect(nz(x), nz(yy), w, h, 'S');
       };
       const grad = (x, yy, w, h, from, to) => {
-        const steps = Math.max(8, Math.floor(w * 2));
+        from = rgb(from); to = rgb(to);
+        const steps = Math.max(8, Math.floor(nz(w, 0) * 2));
         const sw = w / steps + 0.15;
         for (let i = 0; i < steps; i++) {
           const k = i / (steps - 1);
@@ -405,7 +435,9 @@
           });
           stroke(gx, gy, gw, 7, [235, 240, 238], 0.2);
           const px = gx + (Math.min(Math.max(R.bmi, 0), 40) / 40) * gw;
-          doc.setFillColor(C.ink); doc.triangle(nz(px - 2), nz(gy - 2.6), nz(px + 2), nz(gy - 2.6), nz(px), nz(gy + 0.6), 'F');
+          const ink = rgb(C.ink);
+          doc.setFillColor(ink[0], ink[1], ink[2]);
+          doc.triangle(nz(px - 2), nz(gy - 2.6), nz(px + 2), nz(gy - 2.6), nz(px), nz(gy + 0.6), 'F');
           text(f1(R.bmi), px, gy - 4.4, 8, C.ink, 'bold', 'center');
         } else {
           text('Enter age/height/weight in 👤 My Profile to compute BMI.', gx, gy + 4, 7, C.soft, 'italic');
@@ -486,7 +518,7 @@
           text(cd.value, cx + cW - 3, cy + 5.3, 7.4, [255, 255, 255], 'bold', 'right');
           let dy = cy + 13;
           (cd.details || []).slice(0, 3).forEach(d => {
-            doc.setFillColor(196, 214, 205); doc.circle(cx + 3.6, dy - 1.1, 0.6, 'F');
+            const dot = rgb([196, 214, 205]); doc.setFillColor(dot[0], dot[1], dot[2]); doc.circle(cx + 3.6, dy - 1.1, 0.6, 'F');
             text(d, cx + 6, dy, 6.3, C.ink, 'normal');
             dy += 5;
           });
@@ -538,18 +570,26 @@
           }
           const X = (i) => px0 + (px1 - px0) * (pts.length === 1 ? 0.5 : i / (pts.length - 1));
           const Y = (v) => py1 - (py1 - py0) * ((nz(v, vMin) - vMin) / (vMax - vMin));
-          // area fill
-          doc.setFillColor(24, 199, 146);
-          doc.setGState(new doc.GState({ opacity: 0.14 }));
+          // area fill (🛡️ setGState can throw on some jsPDF builds — guard it)
+          const acc = rgb([24, 199, 146]);
+          let gstateOk = false;
+          try {
+            if (typeof doc.GState === 'function') {
+              doc.setGState(new doc.GState({ opacity: 0.14 }));
+              gstateOk = true;
+            }
+          } catch (_) { gstateOk = false; }
+          doc.setFillColor(acc[0], acc[1], acc[2]);
           const poly = pts.map((e, i) => [X(i), Y(parseFloat(e.weight_kg))]);
           for (let i = 0; i < poly.length - 1; i++) {
-            doc.triangle(nz(poly[i][0]), nz(poly[i][1]), nz(poly[i + 1][0]), nz(poly[i + 1][1]), nz(poly[i][0]), py1, 'F');
-            doc.triangle(nz(poly[i + 1][0]), nz(poly[i + 1][1]), nz(poly[i + 1][0]), py1, nz(poly[i][0]), py1, 'F');
+            doc.triangle(nz(poly[i][0]), nz(poly[i][1]), nz(poly[i + 1][0]), nz(poly[i + 1][1]), nz(poly[i][0]), nz(py1), 'F');
+            doc.triangle(nz(poly[i + 1][0]), nz(poly[i + 1][1]), nz(poly[i + 1][0]), nz(py1), nz(poly[i][0]), nz(py1), 'F');
           }
-          doc.setGState(new doc.GState({ opacity: 1 }));
-          doc.setDrawColor(31, 78, 61); doc.setLineWidth(0.7);
+          if (gstateOk) { try { doc.setGState(new doc.GState({ opacity: 1 })); } catch (_) {} }
+          const brandC = rgb(C.brand);
+          doc.setDrawColor(brandC[0], brandC[1], brandC[2]); doc.setLineWidth(0.7);
           for (let i = 0; i < poly.length - 1; i++) doc.line(nz(poly[i][0]), nz(poly[i][1]), nz(poly[i + 1][0]), nz(poly[i + 1][1]));
-          poly.forEach(pt => { doc.setFillColor(C.brand); doc.circle(nz(pt[0]), nz(pt[1]), 1.1, 'F'); });
+          poly.forEach(pt => { doc.setFillColor(brandC[0], brandC[1], brandC[2]); doc.circle(nz(pt[0]), nz(pt[1]), 1.1, 'F'); });
           text(String(pts[0].entry_date || ''), px0, py1 + 5, 5.2, C.soft, 'normal');
           text(String(pts[pts.length - 1].entry_date || ''), px1, py1 + 5, 5.2, C.soft, 'normal', 'right');
           y += chH + 15;
@@ -580,9 +620,10 @@
       text('Certified coaching: sutariaabhi98@gmail.com · wa.me/971521391505', M, fy + 13, 6.4, C.soft, 'normal');
       text('This report is an estimate-based guide, not medical advice.', PW - M, fy + 8, 6.4, C.soft, 'italic', 'right');
 
-      // page numbers chrome for later pages
+      // page numbers chrome for later pages (🛡️ spread colors, never arrays)
       function drawPageChrome(d, name) {
-        d.setFillColor(rgb(C.brand));
+        const bc = rgb(C.brand);
+        d.setFillColor(bc[0], bc[1], bc[2]);
         d.rect(0, 0, PW, 10, 'F');
         d.setFont('helvetica', 'bold'); d.setFontSize(7);
         d.setTextColor(255, 255, 255);
@@ -603,7 +644,11 @@
       showToastSafe('📄 Professional PDF report generated — check your downloads!', 'success');
     } catch (err) {
       console.error('PDF generation failed:', err);
-      showToastSafe('❌ PDF failed: ' + (err.message || err) + ' — check your internet connection and retry.', 'error');
+      const msg = String(err && err.message || err || 'unknown error');
+      // Engine-load failures are network-related; everything else is a code
+      // issue — don't blame the user's internet connection for it.
+      const netIssue = /could not be loaded|Failed to load/i.test(msg);
+      showToastSafe('❌ PDF failed: ' + msg + (netIssue ? ' — check your internet connection and retry.' : ''), 'error');
     } finally {
       if (btn) { btn.disabled = false; btn.innerHTML = '📄 Generate PDF'; }
     }
