@@ -1560,6 +1560,23 @@ html.device-phone #loginCard:not(.hidden){margin-bottom:calc(1rem + var(--safe-b
 .calc-profile-note{font-size:.7rem; font-weight:700; text-transform:none; letter-spacing:.2px; color:#7fc4f5; margin-left:.4rem;}
 .calc-reset-btn{border:1px solid rgba(255,255,255,.18); background:rgba(255,255,255,.06); color:var(--calc-ink-soft); font-size:.72rem; font-weight:700; border-radius:var(--r-pill); padding:.3rem .85rem; cursor:pointer; transition:all .18s var(--ease);}
 .calc-reset-btn:hover{background:rgba(255,255,255,.14); color:#fff; transform:rotate(-8deg) scale(1.05);}
+/* ---------- 📄 Generate PDF button (injected by js/client-portal.js into the calculators tab) ---------- */
+.calc-pdf-row{display:flex; align-items:center; gap:.7rem; flex-wrap:wrap; margin-top:.6rem;}
+.btn-calc-pdf{position:relative; overflow:hidden; display:inline-flex; align-items:center; gap:.45rem;
+  border:none; cursor:pointer; font-family:inherit; font-size:.82rem; font-weight:800; letter-spacing:.3px;
+  color:#fff; padding:.55rem 1.25rem; border-radius:var(--r-pill);
+  background:linear-gradient(135deg,#1f9d6b 0%,#18c792 55%,#0fb8a8 100%);
+  box-shadow:0 10px 22px -10px rgba(24,199,146,.65), inset 0 1px 0 rgba(255,255,255,.25);
+  transition:transform .16s var(--ease), box-shadow .16s var(--ease), filter .16s;}
+.btn-calc-pdf::after{content:""; position:absolute; top:0; left:-70%; width:45%; height:100%;
+  background:linear-gradient(105deg, transparent, rgba(255,255,255,.55), transparent);
+  transform:skewX(-20deg); animation:tasPdfShine 2.8s ease-in-out infinite;}
+@keyframes tasPdfShine{0%{left:-70%;}55%{left:130%;}100%{left:130%;}}
+.btn-calc-pdf:hover{transform:translateY(-2px) scale(1.03); filter:saturate(1.15);
+  box-shadow:0 14px 28px -10px rgba(24,199,146,.8), inset 0 1px 0 rgba(255,255,255,.3);}
+.btn-calc-pdf:active{transform:translateY(0) scale(.98);}
+.btn-calc-pdf:disabled{opacity:.75; cursor:progress; transform:none;}
+.calc-pdf-hint{font-size:.72rem; font-weight:700; color:var(--calc-muted, #7d93a6);}
 .calc-shared-inputs{display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.65rem .8rem;}
 @media (min-width:640px){.calc-shared-inputs{grid-template-columns:repeat(3,minmax(0,1fr));}}
 @media (min-width:980px){.calc-shared-inputs{grid-template-columns:repeat(4,minmax(0,1fr));}}
