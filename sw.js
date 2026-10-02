@@ -14,7 +14,7 @@
    ============================================================ */
 'use strict';
 
-const VERSION = 'tas-pwa-v22';
+const VERSION = 'tas-pwa-v23';
 const SHELL_CACHE   = VERSION + '-shell';
 const RUNTIME_CACHE = VERSION + '-runtime';
 
@@ -35,6 +35,7 @@ const PRECACHE = [
   './js/reminders.js', './js/clients.js', './js/settings.js', './js/reports.js',
   './js/workspace.js', './js/calculators.js', './js/wipe.js', './js/update-site.js', './js/pwa.js',
   './js/client-portal.js',
+  './vendor/jspdf.umd.min.js',
   './js/main.js'
 ];
 

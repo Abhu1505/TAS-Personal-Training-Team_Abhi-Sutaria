@@ -362,8 +362,163 @@ window.renderClientProfile = function (c) {
     html += `<div class="profile-field"><div class="label">${escapeHtml(k)}</div><div class="value">${escapeHtml(v)}</div></div>`;
   });
   html += '</div>';
+
+  // 📌 Shared Inputs — entered once, used by all 15 calculators.
+  // These live HERE in 👤 My Profile (moved out of the Calculators tab):
+  // the values are stored on the cloud profile (fit_* columns from
+  // sql/fitness_calculator.sql) + fitness_inputs, and every calculator
+  // card in the 🧮 Calculators tab reads them from here. Editing a field
+  // updates all 15 calculators live and autosaves to the cloud profile.
+  if (typeof window.CALC_SHARED_FIELDS === 'function' || Array.isArray(window.CALC_SHARED_FIELDS)) {
+    const fields = Array.isArray(window.CALC_SHARED_FIELDS) ? window.CALC_SHARED_FIELDS : [];
+    const escAttr = (s) => String(s ?? '').replace(/&<>"'/g, ch =>
+      ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+    let inputsHtml = '';
+    fields.forEach(f => {
+      const [key, label, type, step] = f;
+      const id = 'pcx-' + key;
+      let control;
+      if (Array.isArray(type)) {
+        control = `<select class="calc-input" id="${id}" data-fitkey="${key}" data-calcscope="client">` +
+          type.map(o => `<option>${escAttr(o)}</option>`).join('') + '</select>';
+      } else {
+        control = `<input class="calc-input" type="number" id="${id}" data-fitkey="${key}" data-calcscope="client" step="${step}" min="0" inputmode="decimal">`;
+      }
+      inputsHtml += `<div class="input-group calc-field"><label for="${id}">${escAttr(label)}</label>${control}</div>`;
+    });
+    html += `<div class="profile-shared-panel">
+      <div class="profile-shared-head">
+        <div class="profile-shared-title">📌 Shared Inputs — entered once, used by all 15 calculators
+          <span class="profile-shared-note hidden" id="profileSharedNote"></span>
+        </div>
+        <button type="button" class="btn-green-small btn-small" id="pcxSubmitBtn">📩 Save to Profile</button>
+      </div>
+      <div class="profile-shared-hint">✍️ Type your details here — the 🧮 Calculators tab updates live as you edit, and everything is saved to your cloud profile. Press “Save to Profile” so your trainer can approve the numbers.</div>
+      <div class="profile-shared-inputs" id="profileSharedInputs">${inputsHtml}</div>
+      <div id="pcxStatus" class="status-msg"></div>
+    </div>`;
+  } else if (typeof window.profileHasCalcStats === 'function' && window.profileHasCalcStats(p)) {
+    // Fallback (calculators.js not loaded): read-only view of the stats.
+    const cs = window.profileCalcStats(p);
+    const calcFields = [
+      ['Weight', cs.weight != null ? cs.weight + ' kg' : '—'],
+      ['Height', cs.height != null ? cs.height + ' cm' : '—'],
+      ['Age', cs.age != null ? cs.age : '—'],
+      ['Gender', cs.gender || '—'],
+      ['Activity Level', cs.activity || '—'],
+      ['Goal', cs.goal || '—'],
+      ['Waist', cs.waist != null ? cs.waist + ' cm' : '—'],
+      ['Neck', cs.neck != null ? cs.neck + ' cm' : '—'],
+      ['Hip', cs.hip != null ? cs.hip + ' cm' : '—'],
+      ['Bench Press', cs.bench != null ? cs.bench + ' kg' : '—'],
+      ['Body Fat %', cs.bodyfat != null ? cs.bodyfat + ' %' : '—']
+    ];
+    html += `<div class="profile-calc-view-title">📌 Shared Inputs <span>— powers your Calculators tab</span></div><div class="profile-grid profile-calc-grid-view">`;
+    calcFields.forEach(([k, v]) => {
+      html += `<div class="profile-field"><div class="label">${escapeHtml(k)}</div><div class="value">${escapeHtml(v)}</div></div>`;
+    });
+    html += '</div>';
+  } else {
+    html += `<div class="profile-calc-empty">📌 Shared Inputs unavailable — reload the page. These 11 details are entered once here and used by all 15 calculators.</div>`;
+  }
   $('clientProfileView').innerHTML = html;
+
+  // Prefill + wire the shared-input fields after they're in the DOM.
+  const pcxIds = {};
+  (Array.isArray(window.CALC_SHARED_FIELDS) ? window.CALC_SHARED_FIELDS : [])
+    .forEach(f => { pcxIds[f[0]] = 'pcx-' + f[0]; });
+  if (typeof window.prefillProfileCalcStats === 'function') {
+    try { window.prefillProfileCalcStats(p, pcxIds); } catch (e) { }
+  }
+  if (typeof window.loadFitnessInputsFor === 'function') {
+    // Adopt the client's saved hub inputs into the profile fields too, so
+    // the Profile always shows exactly what the calculators are using.
+    window.loadFitnessInputsFor(c.id).then(() => {
+      if (typeof window.prefillProfileCalcStats === 'function') {
+        try { window.prefillProfileCalcStats(p, pcxIds); } catch (e) { }
+      }
+    }).catch(() => { });
+  }
+  const pcxSubmit = $('pcxSubmitBtn');
+  if (pcxSubmit) pcxSubmit.addEventListener('click', () => submitSharedInputsFromProfile(c));
 };
+
+// Submit the 👤 My Profile → 📌 Shared Inputs as a normal profile approval
+// (same fit_* payload the ✏️ Edit Profile modal uses) AND save them straight
+// into fitness_inputs so the Calculators tab reflects them immediately.
+async function submitSharedInputsFromProfile(client) {
+  const st = $('pcxStatus');
+  const ids = {};
+  (Array.isArray(window.CALC_SHARED_FIELDS) ? window.CALC_SHARED_FIELDS : [])
+    .forEach(f => { ids[f[0]] = 'pcx-' + f[0]; });
+  const gv = (k) => { const el = $(ids[k]); return el ? el.value : ''; };
+  const gn = (k) => { const n = parseFloat(gv(k)); return Number.isFinite(n) ? n : null; };
+  const proposed = {
+    fit_weight_kg: gn('weight'), fit_height_cm: gn('height'), fit_age: gn('age'),
+    fit_gender: gv('gender') || null, fit_activity_level: gv('activity') || null,
+    fit_goal: gv('goal') || null, fit_waist_cm: gn('waist'), fit_neck_cm: gn('neck'),
+    fit_hip_cm: gn('hip'), fit_bench_kg: gn('bench'), fit_body_fat_pct: gn('bodyfat')
+  };
+  const currentP = clientMapGet(APP_STATE.clientProfiles, client.id) || {};
+  if (st) showStatus(st, '⏳ Saving…', 'info');
+  try {
+    // 1) Instant path: write the values into fitness_inputs (+ localStorage)
+    //    so every calculator uses them right away.
+    const keys = Object.keys(proposed).filter(k => proposed[k] !== null && proposed[k] !== '');
+    if (keys.length) {
+      let saved = null;
+      try { saved = JSON.parse(localStorage.getItem('tas_fitness_inputs_' + String(client.id)) || 'null'); } catch (e) { }
+      const merged = Object.assign({}, DEFAULTS_FALLBACK, saved || {});
+      const colMap = {
+        fit_weight_kg: 'weight', fit_height_cm: 'height', fit_age: 'age', fit_gender: 'gender',
+        fit_activity_level: 'activity', fit_goal: 'goal', fit_waist_cm: 'waist', fit_neck_cm: 'neck',
+        fit_hip_cm: 'hip', fit_bench_kg: 'bench', fit_body_fat_pct: 'bodyfat'
+      };
+      keys.forEach(k => { merged[colMap[k]] = proposed[k]; });
+      try { localStorage.setItem('tas_fitness_inputs_' + String(client.id), JSON.stringify(merged)); } catch (e) { }
+      try {
+        const sb = APP_STATE.supabaseClient;
+        if (sb) {
+          await sb.from('fitness_inputs').upsert(
+            { client_id: String(client.id), inputs: merged, updated_at: new Date().toISOString() },
+            { onConflict: 'client_id' });
+        }
+      } catch (e) { /* table missing → local copy still saved */ }
+      if (typeof window.loadFitnessInputsFor === 'function') {
+        try { await window.loadFitnessInputsFor(client.id); } catch (e) { }
+      }
+    }
+    // 2) Approval path: store the same values on the cloud profile (fit_*
+    //    columns) via the normal profile-approval flow.
+    const sb = APP_STATE.supabaseClient;
+    if (!sb) {
+      if (st) showStatus(st, '✅ Saved — all 15 calculators are using these values now.', 'success');
+      return;
+    }
+    const { data, error } = await sb.from('profile_approvals')
+      .insert({ client_id: client.id, proposed_data: proposed, current_data: currentP, status: 'pending' })
+      .select().single();
+    if (error && typeof window.isSchemaMissingError === 'function' && window.isSchemaMissingError(error)) {
+      if (st) showStatus(st, '✅ Saved — your calculators use these values now. (Run sql/fitness_calculator.sql to also store them on the cloud profile.)', 'success');
+      return;
+    }
+    if (error) throw error;
+    (APP_STATE.profileApprovals || []).unshift(data);
+    if (st) showStatus(st, '✅ Saved! All 15 calculators are using these values now — submitted to your trainer for profile approval.', 'success');
+    if (typeof window.syncClientPendingBanner === 'function') window.syncClientPendingBanner();
+    if (typeof window.updateApprovalsBadge === 'function') window.updateApprovalsBadge();
+    setTimeout(() => { if (st) clearStatus(st); }, 5000);
+  } catch (err) {
+    if (st) showStatus(st, '❌ ' + err.message, 'error');
+  }
+}
+// Defaults mirror js/calculators.js DEFAULTS (used when merging saves locally).
+const DEFAULTS_FALLBACK = {
+  weight: 75, height: 175, age: 25, gender: 'Male',
+  activity: 'Moderately Active', goal: 'Maintain',
+  waist: 85, neck: 38, hip: 95, bench: 80, bodyfat: 15
+};
+window.__calcDefaults = DEFAULTS_FALLBACK;
 
 window.renderClientUpcoming = function (c) {
   const container = $('clientUpcomingList');
@@ -435,28 +590,35 @@ window.renderClientUpcoming = function (c) {
 };
 
 window.openProgressModal = function (entry, clientId, addedBy) {
+  // Guarded opener: every field lookup is optional so a missing/renamed
+  // input can never throw before the modal appears (this was the root
+  // cause of "➕ Add Entry is not working" in the client portal).
+  const setVal = (id, v) => { const el = $(id); if (el) el.value = v; };
   APP_STATE.selectedClientForProgress = { clientId, addedBy };
   if (entry) {
-    $('editProgressId').value = entry.id;
-    $('progressModalTitle').textContent = '✏️ Edit';
-    $('pgDate').value = entry.entry_date || '';
-    $('pgWeight').value = entry.weight_kg || '';
-    $('pgBodyFat').value = entry.body_fat_pct || '';
-    $('pgChest').value = entry.chest_cm || '';
-    $('pgWaist').value = entry.waist_cm || '';
-    $('pgHips').value = entry.hips_cm || '';
-    $('pgArms').value = entry.arms_cm || '';
-    $('pgThighs').value = entry.thighs_cm || '';
-    $('pgNotes').value = entry.notes || '';
-    $('pgPhoto').value = entry.photo_url || '';
+    setVal('editProgressId', entry.id);
+    const t = $('progressModalTitle'); if (t) t.textContent = '✏️ Edit';
+    setVal('pgDate', entry.entry_date || '');
+    setVal('pgWeight', entry.weight_kg || '');
+    setVal('pgBodyFat', entry.body_fat_pct || '');
+    setVal('pgChest', entry.chest_cm || '');
+    setVal('pgWaist', entry.waist_cm || '');
+    setVal('pgHips', entry.hips_cm || '');
+    setVal('pgArms', entry.arms_cm || '');
+    setVal('pgThighs', entry.thighs_cm || '');
+    setVal('pgNotes', entry.notes || '');
+    setVal('pgPhoto', entry.photo_url || '');
   } else {
-    $('editProgressId').value = '';
-    $('progressModalTitle').textContent = addedBy === 'admin' ? '➕ Add (as Admin)' : '➕ Add My Progress';
-    $('pgDate').value = new Date().toISOString().split('T')[0];
+    setVal('editProgressId', '');
+    const t = $('progressModalTitle');
+    if (t) t.textContent = addedBy === 'admin' ? '➕ Add (as Admin)' : '➕ Add My Progress';
+    setVal('pgDate', new Date().toISOString().split('T')[0]);
     ['pgWeight', 'pgBodyFat', 'pgChest', 'pgWaist', 'pgHips', 'pgArms', 'pgThighs', 'pgNotes', 'pgPhoto']
-      .forEach(i => $(i).value = '');
+      .forEach(i => setVal(i, ''));
   }
-  $('progressModal').classList.remove('hidden');
+  const modal = $('progressModal');
+  if (!modal) return;
+  modal.classList.remove('hidden');
   clearStatus($('progressModalStatus'));
 };
 
@@ -534,12 +696,40 @@ window.submitProfileEdit = async function () {
     medical_notes: $('peMedical').value.trim() || null,
     emergency_contact: $('peEmergency').value.trim() || null
   };
+  // 🧮 Calculator Body Stats (profile section) — stored as fit_* columns on
+  // client_profiles and copied into fitness_inputs when the trainer approves.
+  const vnum = (id) => { const n = parseFloat($(id).value); return Number.isFinite(n) ? n : null; };
+  proposed.fit_weight_kg      = vnum('pcWeight');
+  proposed.fit_height_cm      = vnum('pcHeightCm');
+  proposed.fit_age            = vnum('pcAge');
+  proposed.fit_gender         = $('pcGenderSel').value || null;
+  proposed.fit_activity_level = $('pcActivity').value || null;
+  proposed.fit_goal           = $('pcGoalSel').value || null;
+  proposed.fit_waist_cm       = vnum('pcWaist');
+  proposed.fit_neck_cm        = vnum('pcNeck');
+  proposed.fit_hip_cm         = vnum('pcHip');
+  proposed.fit_bench_kg       = vnum('pcBench');
+  proposed.fit_body_fat_pct   = vnum('pcBodyfat');
   const current = clientMapGet(APP_STATE.clientProfiles, APP_STATE.loggedInClient.id) || {};
   try {
     $('submitProfileBtn').disabled = true;
     const { data, error } = await APP_STATE.supabaseClient.from('profile_approvals')
       .insert({ client_id: APP_STATE.loggedInClient.id, proposed_data: proposed, current_data: current, status: 'pending' })
       .select().single();
+    if (error && typeof window.isSchemaMissingError === 'function' && window.isSchemaMissingError(error)) {
+      // Migration not applied yet → submit without the fit_* stats so the
+      // normal profile edit still works.
+      Object.keys(proposed).forEach(k => { if (k.startsWith('fit_')) delete proposed[k]; });
+      const retry = await APP_STATE.supabaseClient.from('profile_approvals')
+        .insert({ client_id: APP_STATE.loggedInClient.id, proposed_data: proposed, current_data: current, status: 'pending' })
+        .select().single();
+      if (retry.error) throw retry.error;
+      showStatus($('profileEditStatus'), '⚠️ Submitted — but run sql/fitness_calculator.sql to enable calculator body stats.', 'success');
+      $('profileEditModal').classList.add('hidden');
+      if (typeof window.syncClientPendingBanner === 'function') window.syncClientPendingBanner();
+      updateApprovalsBadge();
+      return;
+    }
     if (error) throw error;
     APP_STATE.profileApprovals.unshift(data);
     $('profileEditModal').classList.add('hidden');

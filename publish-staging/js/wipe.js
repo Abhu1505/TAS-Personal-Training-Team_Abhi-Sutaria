@@ -54,6 +54,8 @@ window.performWipe = async function () {
       await wipeAll('client_requests');
       await wipeAll('workout_edit_requests');
       await wipeAll('progress_reports');
+      // 🧮 Calculator hub saved inputs (sql/fitness_calculator.sql).
+      try { await wipeAll('fitness_inputs', 'client_id'); } catch (e) { console.warn('wipe: fitness_inputs skipped', e); }
       await wipeAll('client_profiles', 'client_id');
       await wipeAll('client_settings', 'client_id');
       // BUG FIX: delete clients FIRST, then re-run the child-table wipes.
@@ -72,6 +74,8 @@ window.performWipe = async function () {
       await wipeAll('client_requests');
       await wipeAll('workout_edit_requests');
       await wipeAll('progress_reports');
+      // 🧮 Calculator hub saved inputs (sql/fitness_calculator.sql).
+      try { await wipeAll('fitness_inputs', 'client_id'); } catch (e) { console.warn('wipe: fitness_inputs skipped', e); }
       await wipeAll('client_profiles', 'client_id');
       await wipeAll('client_settings', 'client_id');
       await wipeAll('exercises');
@@ -113,6 +117,11 @@ window.performWipe = async function () {
       APP_STATE.workoutEditRequests = [];
       APP_STATE.savedReports = [];
       try { localStorage.removeItem('pt_progress_reports_v1'); } catch (e) {}
+      // 🧮 Calculator hub: clear every local cached copy AND re-issue the
+      // cloud delete, so saved calculator inputs never "come back" after a wipe.
+      if (typeof window.wipeFitnessInputs === 'function') {
+        try { await window.wipeFitnessInputs(); } catch (e) { console.warn('wipe: fitness cache skipped', e); }
+      }
       APP_STATE.selectedClientId = null;
       // Admin credentials are restored to the hardcoded config values — they
       // survive every wipe by design.

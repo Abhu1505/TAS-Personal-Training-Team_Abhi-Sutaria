@@ -74,7 +74,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
-<link rel="stylesheet" href="css/styles.css?v=compact-v13">
+<link rel="stylesheet" href="css/styles.css?v=calc-hub-v1">
 <script>/* Pre-paint theme: AUTO ONLY — always follows the local sunrise/sunset
    (Dubai fallback until geolocation resolves). The manual Light/Dark toggle
    button was removed, so any legacy 'tas_theme_mode' override stored in
@@ -219,6 +219,7 @@
       <button class="tab-btn active" data-ctab="plan">🏋️ My Plan</button>
       <button class="tab-btn" data-ctab="history">📜 History</button>
       <button class="tab-btn" data-ctab="progress">📈 Progress</button>
+      <button class="tab-btn" data-ctab="calculators">🧮 Calculators</button>
       <button class="tab-btn" data-ctab="profile">👤 Profile</button>
     </div>
     <div class="tab-content" id="ctab-plan">
@@ -253,6 +254,12 @@
         </div>
         <div id="clientReportBody"></div>
       </div>
+    </div>
+    <!-- 🧮 CALCULATORS TAB — Fitness Calculator Hub (js/calculators.js)
+         ONE shared input panel at the top; all 15 calculator cards read
+         from it and update live. Content is mounted by calculators.js. -->
+    <div class="tab-content hidden" id="ctab-calculators">
+      <div class="calc-hub-wrap" id="clientCalcHub"></div>
     </div>
     <div class="tab-content hidden" id="ctab-profile">
       <div class="section-card">
@@ -301,6 +308,7 @@
     <div class="tabs-bar admin-workspace-tabs" role="tablist" aria-label="Admin workspace">
       <button class="tab-btn active" data-atab2="home" type="button" role="tab" id="adminTabHomeBtn">🏠 Home</button>
       <button class="tab-btn" data-atab2="clients" type="button" role="tab" id="adminTabClientsBtn">📋 Clients <span id="adminClientsTabCount" class="badge-count">0</span></button>
+      <button class="tab-btn" data-atab2="calculators" type="button" role="tab" id="adminTabCalculatorsBtn">🧮 Calculators</button>
     </div>
 
     <!-- ---------- WORKSPACE 1: HOME — create clients quickly ---------- -->
@@ -611,6 +619,24 @@
       </details>
     </div>
   </div><!-- /adminWorkspaceClients -->
+
+    <!-- ---------- WORKSPACE 3: CALCULATORS — Fitness Calculator Hub ----------
+         Same hub as the client portal, with a client selector on top so the
+         trainer can preview/adjust any client's saved shared inputs. The
+         selected client's values load from fitness_inputs and edits save back
+         to that client (debounced autosave in js/calculators.js). -->
+    <div id="adminWorkspaceCalculators" class="admin-workspace hidden">
+      <div class="calc-client-bar">
+        <div class="input-group" style="flex:1 1 240px;margin:0;">
+          <label for="adminCalcClientSelect">Viewing calculators for</label>
+          <select id="adminCalcClientSelect">
+            <option value="">— My own demo values (not saved) —</option>
+          </select>
+        </div>
+        <span class="calc-client-hint">💾 Changes autosave to the selected client's cloud profile.</span>
+      </div>
+      <div class="calc-hub-wrap" id="adminCalcHub"></div>
+    </div><!-- /adminWorkspaceCalculators -->
   </div>
 
 <!-- MODALS -->
@@ -788,6 +814,33 @@
       <div class="input-group"><label for="peGoal">Goal</label><input type="text" id="peGoal" placeholder="Lose 5kg, gain muscle, etc."></div>
       <div class="input-group"><label for="peMedical">Medical notes</label><input type="text" id="peMedical" placeholder="Any injuries or conditions"></div>
       <div class="input-group"><label for="peEmergency">Emergency contact</label><input type="text" id="peEmergency" placeholder="Name + phone"></div>
+
+      <!-- 📌 SHARED INPUTS — the 11 "entered once, used by all 15
+           calculators" details live in 👤 My Profile (fit_* columns from
+           sql/fitness_calculator.sql on client_profiles). Editing them here
+           submits a normal profile approval; on approval js/approvals.js
+           copies them into fitness_inputs so the Calculators tab uses them. -->
+      <div class="profile-calc-divider">📌 Shared Inputs — entered once, used by all 15 calculators <span>— powers your Calculators tab · changes need trainer approval</span></div>
+      <div class="profile-calc-grid">
+        <div class="input-group"><label for="pcWeight">Weight (kg)</label><input type="number" id="pcWeight" step="0.1" min="0" inputmode="decimal" placeholder="75"></div>
+        <div class="input-group"><label for="pcHeightCm">Height (cm)</label><input type="number" id="pcHeightCm" step="0.1" min="0" inputmode="decimal" placeholder="175"></div>
+        <div class="input-group"><label for="pcAge">Age</label><input type="number" id="pcAge" step="1" min="0" inputmode="numeric" placeholder="25"></div>
+        <div class="input-group"><label for="pcGenderSel">Gender</label>
+          <select id="pcGenderSel"><option>Male</option><option>Female</option></select></div>
+        <div class="input-group"><label for="pcActivity">Activity Level</label>
+          <select id="pcActivity">
+            <option>Sedentary</option><option>Lightly Active</option><option selected>Moderately Active</option>
+            <option>Very Active</option><option>Extremely Active</option>
+          </select></div>
+        <div class="input-group"><label for="pcGoalSel">Goal</label>
+          <select id="pcGoalSel"><option>Cut</option><option selected>Maintain</option><option>Bulk</option></select></div>
+        <div class="input-group"><label for="pcWaist">Waist (cm)</label><input type="number" id="pcWaist" step="0.1" min="0" inputmode="decimal" placeholder="85"></div>
+        <div class="input-group"><label for="pcNeck">Neck (cm)</label><input type="number" id="pcNeck" step="0.1" min="0" inputmode="decimal" placeholder="38"></div>
+        <div class="input-group"><label for="pcHip">Hip (cm)</label><input type="number" id="pcHip" step="0.1" min="0" inputmode="decimal" placeholder="95"></div>
+        <div class="input-group"><label for="pcBench">Bench Press (kg)</label><input type="number" id="pcBench" step="0.1" min="0" inputmode="decimal" placeholder="80"></div>
+        <div class="input-group"><label for="pcBodyfat">Body Fat % (optional)</label><input type="number" id="pcBodyfat" step="0.1" min="0" max="70" inputmode="decimal" placeholder="15"></div>
+      </div>
+
       <div class="modal-actions">
         <button class="btn-admin" id="submitProfileBtn">📩 Submit for Approval</button>
         <button class="btn-secondary" id="cancelProfileEditBtn">Cancel</button>
@@ -923,6 +976,10 @@
 <script src="js/sessions.js"></script>
 <script src="js/exercises.js"></script>
 <script src="js/progress.js"></script>
+<!-- 🧮 Fitness Calculator Hub — 15 calculators driven by ONE shared input
+     panel (client tab + admin workspace tab). Saves to Supabase table
+     fitness_inputs; run sql/fitness_calculator.sql once before deploying. -->
+<script src="js/calculators.js"></script>
 <!-- 📨 The client "My Requests" feature and js/client-requests.js were
      removed entirely (tab, modal, approvals list, data loading). -->
 <script src="js/class-times.js"></script>
@@ -936,6 +993,8 @@
 <script src="js/wipe.js"></script>
 <script src="js/update-site.js"></script>
 <script src="js/pwa.js"></script>
+<!-- 👤 Client portal robust wiring (Edit Profile / Add Entry) + 📄 Calculator PDF export -->
+<script src="js/client-portal.js"></script>
 <script src="js/main.js"></script>
 
 <script>
@@ -969,6 +1028,9 @@
        ['peGoal','goal'],['peMedical','medical_notes'],['peEmergency','emergency_contact']].forEach(function (m) {
         var f = document.getElementById(m[0]); if (f) f.value = p[m[1]] || '';
       });
+      if (typeof window.prefillProfileCalcStats === 'function') {
+        window.prefillProfileCalcStats(p);
+      }
       el.classList.remove('hidden');
       var st = document.getElementById('profileEditStatus'); if (st) st.textContent = '';
     } else if (el.id === 'dayLogModal') {
