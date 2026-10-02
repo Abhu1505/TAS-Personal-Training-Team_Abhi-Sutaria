@@ -370,24 +370,38 @@ window.renderClientProfile = function (c) {
   const setVal = (id, v) => { const el = $(id); if (el) el.value = (v == null ? '' : String(v)); };
 
   // ---------- shared-input controls (the 11 calculator fields) ----------
+  // 🎨 Styled EXACTLY like the 👤 Basic Details text boxes above (plain
+  // portal inputs/selects — no dark "calc-input" theme), so every field is
+  // fully visible in both light and dark themes.
+  // 📌 The fields START EMPTY: nothing is pre-filled from localStorage or
+  // fitness_inputs. Only values that are already APPROVED on the cloud
+  // profile (fit_* columns, written by js/approvals.js) appear here.
   const calcFields = Array.isArray(window.CALC_SHARED_FIELDS) ? window.CALC_SHARED_FIELDS : [];
+  const approvedStats = (typeof window.profileHasCalcStats === 'function' &&
+    window.profileHasCalcStats(p) && typeof window.profileCalcStats === 'function')
+    ? window.profileCalcStats(p) : {};
   let sharedHtml = '';
   calcFields.forEach(f => {
     const [key, label, type, step] = f;
     const id = 'pcx-' + key;
+    const av = approvedStats[key];
     let control;
     if (Array.isArray(type)) {
-      control = `<select class="calc-input" id="${id}" data-fitkey="${key}" data-calcscope="client">` +
-        type.map(o => `<option>${escAttr(o)}</option>`).join('') + '</select>';
+      control = `<select id="${id}" data-fitkey="${key}" data-calcscope="client">` +
+        `<option value="">— select —</option>` +
+        type.map(o => `<option${String(av) === String(o) ? ' selected' : ''}>${escAttr(o)}</option>`).join('') +
+        '</select>';
     } else {
-      control = `<input class="calc-input" type="number" id="${id}" data-fitkey="${key}" data-calcscope="client" step="${step}" min="0" inputmode="decimal">`;
+      control = `<input type="number" id="${id}" data-fitkey="${key}" data-calcscope="client" step="${step}" min="0" inputmode="decimal"` +
+        ` placeholder="Enter ${escAttr(String(label).replace(/\s*\(.*\)/, ''))}"` +
+        ` value="${(av === undefined || av === null) ? '' : escAttr(av)}">`;
     }
-    sharedHtml += `<div class="input-group calc-field"><label for="${id}">${escAttr(label)}</label>${control}</div>`;
+    sharedHtml += `<div class="input-group"><label for="${id}">${escAttr(label)}</label>${control}</div>`;
   });
 
   // ---------- ONE merged form: basic details + shared inputs together ----------
   let html = `
-  <div class="profile-shared-hint">✍️ Everything below is ONE form — edit your details and the 📌 Shared Inputs together, then press “📩 Save to Profile”. ALL items are sent to your trainer for approval at once. The 🧮 Calculators tab updates live while you type.</div>
+  <div class="profile-shared-hint">✍️ Everything below is ONE form — edit your details and the 📌 Shared Inputs together, then press “📩 Save to Profile”. ALL items are sent to your trainer for approval at once. The 🧮 Calculators tab shows your values only AFTER your trainer approves them.</div>
   <form id="profileEditForm" autocomplete="off" onsubmit="return false;">
     <div class="profile-calc-divider">👤 Basic Details <span>— reviewed &amp; approved by your trainer</span></div>
     <div class="profile-calc-grid">
@@ -399,7 +413,7 @@ window.renderClientProfile = function (c) {
       <div class="input-group"><label for="pfEmergency">Emergency contact</label><input type="text" id="pfEmergency" placeholder="Name + phone"></div>
     </div>
     ${sharedHtml ? `
-    <div class="profile-calc-divider">📌 Shared Inputs <span>— entered once, used by all 15 calculators</span>
+    <div class="profile-calc-divider">📌 Shared Inputs <span>— entered once, used by all 15 calculators after approval</span>
       <span class="profile-shared-note hidden" id="profileSharedNote"></span>
     </div>
     <div class="profile-shared-inputs profile-calc-grid" id="profileSharedInputs">${sharedHtml}</div>` : `
@@ -424,20 +438,18 @@ window.renderClientProfile = function (c) {
   setVal('pfMedical', p.medical_notes);
   setVal('pfEmergency', p.emergency_contact);
 
-  // ---------- prefill + live-sync the shared inputs ----------
+  // ---------- 📌 Shared Inputs: EMPTY until approved ----------
+  // The fields above were rendered straight from the APPROVED fit_* profile
+  // columns only. We deliberately do NOT call prefillProfileCalcStats() or
+  // loadFitnessInputsFor() here any more — those adopted draft autosaves and
+  // demo defaults into the form, so it never started empty. A value appears
+  // in these boxes (and in the 🧮 Calculators tab) ONLY after the trainer
+  // approves the submission (js/approvals.js writes client_profiles.fit_*).
   const pcxIds = {};
   calcFields.forEach(f => { pcxIds[f[0]] = 'pcx-' + f[0]; });
-  if (typeof window.prefillProfileCalcStats === 'function') {
-    try { window.prefillProfileCalcStats(p, pcxIds); } catch (e) { }
-  }
-  if (typeof window.loadFitnessInputsFor === 'function') {
-    // Adopt the client's saved hub inputs into the profile fields too, so
-    // the Profile always shows exactly what the calculators are using.
-    window.loadFitnessInputsFor(c.id).then(() => {
-      if (typeof window.prefillProfileCalcStats === 'function') {
-        try { window.prefillProfileCalcStats(p, pcxIds); } catch (e) { }
-      }
-    }).catch(() => { });
+  if (typeof window.profileHasCalcStats === 'function' && window.profileHasCalcStats(p)) {
+    const note = $('profileSharedNote');
+    if (note) { note.textContent = '· saved to your cloud profile ✓'; note.classList.remove('hidden'); }
   }
   // Height typed in the basic section feeds the Shared Inputs height live.
   const pfH = $('pfHeight');
@@ -488,36 +500,15 @@ async function submitProfileFromView(client) {
   }
   if (st) showStatus(st, '⏳ Saving…', 'info');
   try {
-    // 1) Instant path: write the shared values into fitness_inputs (+
-    //    localStorage) so every calculator uses them right away.
-    const colMap = {
-      fit_weight_kg: 'weight', fit_height_cm: 'height', fit_age: 'age', fit_gender: 'gender',
-      fit_activity_level: 'activity', fit_goal: 'goal', fit_waist_cm: 'waist', fit_neck_cm: 'neck',
-      fit_hip_cm: 'hip', fit_bench_kg: 'bench', fit_body_fat_pct: 'bodyfat'
-    };
-    const keys = Object.keys(colMap).filter(k => proposed[k] !== null && proposed[k] !== '');
-    if (keys.length) {
-      let saved = null;
-      try { saved = JSON.parse(localStorage.getItem('tas_fitness_inputs_' + String(client.id)) || 'null'); } catch (e) { }
-      const merged = Object.assign({}, DEFAULTS_FALLBACK, saved || {});
-      keys.forEach(k => { merged[colMap[k]] = proposed[k]; });
-      try { localStorage.setItem('tas_fitness_inputs_' + String(client.id), JSON.stringify(merged)); } catch (e) { }
-      try {
-        const sb = APP_STATE.supabaseClient;
-        if (sb) {
-          await sb.from('fitness_inputs').upsert(
-            { client_id: String(client.id), inputs: merged, updated_at: new Date().toISOString() },
-            { onConflict: 'client_id' });
-        }
-      } catch (e) { /* table missing → local copy still saved */ }
-      if (typeof window.loadFitnessInputsFor === 'function') {
-        try { await window.loadFitnessInputsFor(client.id); } catch (e) { }
-      }
-    }
+    // 📌 NOTHING touches fitness_inputs / localStorage any more here.
+    //    The submission goes ONLY to profile_approvals (status: pending).
+    //    On APPROVAL the trainer's js/approvals.js writes the fit_* columns
+    //    into client_profiles and syncs them into the calculator hub — that
+    //    is the single path by which values "come into the calculator".
     // 2) Approval path: send the whole merged form as ONE profile approval.
     const sb = APP_STATE.supabaseClient;
     if (!sb) {
-      if (st) showStatus(st, '✅ Saved — all 15 calculators are using these values now.', 'success');
+      if (st) showStatus(st, '⚠️ Offline — nothing was submitted. Re-open the portal while connected and press “📩 Save to Profile” again.', 'info');
       return;
     }
     const { data, error } = await sb.from('profile_approvals')
@@ -532,13 +523,13 @@ async function submitProfileFromView(client) {
         .select().single();
       if (retry.error) throw retry.error;
       (APP_STATE.profileApprovals || []).unshift(retry.data);
-      if (st) showStatus(st, '✅ Submitted! ⚠️ Run sql/fitness_calculator.sql to enable calculator body stats.', 'success');
+      if (st) showStatus(st, '✅ Submitted for approval! ⚠️ Run sql/fitness_calculator.sql to enable calculator body stats.', 'success');
     } else if (error) {
       throw error;
     } else {
       (APP_STATE.profileApprovals || []).unshift(data);
-      if (st) showStatus(st, '✅ All items saved & submitted to your trainer for approval — in one request.', 'success');
-      if (typeof window.showToast === 'function') window.showToast('✅ Profile submitted for approval!', 'success');
+      if (st) showStatus(st, '⏳ Submitted! Your trainer must approve these details before they appear in the 🧮 Calculators.', 'success');
+      if (typeof window.showToast === 'function') window.showToast('⏳ Profile submitted — waiting for trainer approval', 'info');
     }
     if (typeof window.syncClientPendingBanner === 'function') window.syncClientPendingBanner();
     if (typeof window.updateApprovalsBadge === 'function') window.updateApprovalsBadge();
