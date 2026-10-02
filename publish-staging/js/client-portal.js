@@ -35,34 +35,74 @@
 
   // ============================================================
   // 1 · ✏️ EDIT PROFILE — guaranteed-working opener
+  // ------------------------------------------------------------
+  // BUG FIX ("✏️ Edit Profile button is not working"): every step below is
+  // individually guarded so ONE hiccup can no longer kill the whole flow:
+  //   • the modal element is looked up FIRST and always shown, even if
+  //     prefill or the tab switch throws,
+  //   • a stale "hidden" inline style left by an older script version is
+  //     cleared (display:none would hide the modal even without .hidden),
+  //   • date inputs are sanitized ('null'/bad strings used to throw),
+  //   • the shared-input prefill is wrapped in its own try/catch.
   // ============================================================
   window.tasOpenProfileEdit = function () {
+    const modal = $id('profileEditModal');
+    if (!modal) {
+      showToastSafe('⚠️ Profile form not found — please hard-refresh (Ctrl+Shift+R) and try again.', 'error');
+      return;
+    }
+    const reveal = () => {
+      try { modal.style.display = ''; } catch (e) {}       // clear any stale inline hiding
+      modal.classList.remove('hidden');
+      const st = $id('profileEditStatus');
+      if (st) st.textContent = '';
+    };
+    const focusFirst = () => {
+      const first = $id('peHeight');
+      if (first) setTimeout(() => { try { first.focus(); } catch (e) {} }, 250);
+    };
+
+    const S = window.APP_STATE;
+    const c = S && S.loggedInClient;
+    if (!c) {
+      showToastSafe('🔐 Please sign in first to edit your profile.', 'info');
+      const login = $id('loginIdInput');
+      if (login) { try { login.focus(); } catch (e) {} }
+      return;
+    }
+
+    let p = {};
     try {
-      const S = window.APP_STATE;
-      const c = S && S.loggedInClient;
-      if (!c) {
-        showToastSafe('🔐 Please sign in first to edit your profile.', 'info');
-        const login = $id('loginIdInput');
-        if (login) login.focus();
-        return;
+      if (typeof clientMapGet === 'function' && S.clientProfiles) {
+        p = clientMapGet(S.clientProfiles, c.id) || {};
       }
-      const p = (typeof clientMapGet === 'function' && S.clientProfiles)
-        ? (clientMapGet(S.clientProfiles, c.id) || {}) : {};
+    } catch (e) { p = {}; }
 
-      // Basic fields — set only if present (never throw on missing ids).
-      const basic = [
-        ['peHeight', p.height_cm], ['peGender', p.gender], ['peBirth', p.birth_date],
-        ['peGoal', p.goal], ['peMedical', p.medical_notes], ['peEmergency', p.emergency_contact]
-      ];
-      basic.forEach(([id, val]) => {
+    // Basic fields — each assignment independent; a broken value can never
+    // stop the other fields or the modal itself.
+    const basic = [
+      ['peHeight', p.height_cm], ['peGender', p.gender], ['peBirth', p.birth_date],
+      ['peGoal', p.goal], ['peMedical', p.medical_notes], ['peEmergency', p.emergency_contact]
+    ];
+    basic.forEach(([id, val]) => {
+      try {
         const el = $id(id);
-        if (el) el.value = (val == null ? '' : String(val));
-      });
+        if (!el) return;
+        if (el.type === 'date') {
+          // Only accept real YYYY-MM-DD dates — old code crashed on 'null'.
+          const s = (val == null ? '' : String(val)).slice(0, 10);
+          el.value = /^\d{4}-\d{2}-\d{2}$/.test(s) ? s : '';
+        } else {
+          el.value = (val == null ? '' : String(val));
+        }
+      } catch (e) { /* field-level failure is non-fatal */ }
+    });
 
-      // 📌 Shared Inputs (fit_* columns) — prefill via calculators.js when
-      // available, otherwise fill the pc* fields directly from the profile.
+    // 📌 Shared Inputs (fit_* columns) — prefill via calculators.js when
+    // available, otherwise fill the pc* fields directly from the profile.
+    try {
       if (typeof window.prefillProfileCalcStats === 'function') {
-        try { window.prefillProfileCalcStats(p); } catch (e) { /* non-fatal */ }
+        window.prefillProfileCalcStats(p);
       } else {
         const fit = [
           ['pcWeight', p.fit_weight_kg], ['pcHeightCm', p.fit_height_cm], ['pcAge', p.fit_age],
@@ -79,25 +119,16 @@
             if (el && val && [...el.options].some(o => o.value === val)) el.value = val;
           });
       }
+    } catch (e) { console.warn('shared-input prefill failed (non-fatal):', e); }
 
-      // Switch to the Profile tab so the modal context is visible behind it.
+    // Switch to the Profile tab so the modal context is visible behind it.
+    try {
       const tabBtn = document.querySelector('.tab-btn[data-ctab="profile"]');
       if (tabBtn) tabBtn.click();
+    } catch (e) { /* cosmetic only */ }
 
-      const modal = $id('profileEditModal');
-      if (!modal) { showToastSafe('⚠️ Profile form not found — please reload the page.', 'error'); return; }
-      modal.classList.remove('hidden');
-      const st = $id('profileEditStatus');
-      if (st) st.textContent = '';
-      const first = $id('peHeight');
-      if (first) setTimeout(() => { try { first.focus(); } catch (e) {} }, 250);
-    } catch (err) {
-      console.error('tasOpenProfileEdit:', err);
-      // Last resort: still show the modal so the client is never stuck.
-      const modal = $id('profileEditModal');
-      if (modal) modal.classList.remove('hidden');
-      showToastSafe('⚠️ Prefill hiccup — you can still type your details and submit.', 'warning');
-    }
+    reveal();
+    focusFirst();
   };
 
   // ============================================================
@@ -147,13 +178,187 @@
   //     duplicate bindings are harmless because we route through
   //     the guarded openers above.
   // ============================================================
+  // 🛡️ Each handler is individually try/catch wrapped: a failure in one
+  // action can never break the others (this was the original bug pattern).
+  function safe(fn) {
+    return function (e) {
+      try { fn(e); } catch (err) {
+        console.error('[client-portal] handler failed:', err);
+        showToastSafe('⚠️ Something went wrong: ' + (err && err.message ? err.message : err), 'error');
+      }
+    };
+  }
+  // 🛡️ IMPORTANT: never call stopPropagation() here. The profile-edit modal
+  // and the progress modal close when a click lands on their backdrop, and
+  // those overlay listeners live on the overlay ELEMENT — stopping bubbling
+  // at the document level used to swallow them, which made the modals feel
+  // "dead" (open → can't dismiss / confusing state). preventDefault keeps
+  // the button's native behaviour tidy without breaking anything.
   document.addEventListener('click', (e) => {
     const t = e.target;
     if (!t || !t.closest) return;
-    if (t.closest('#clientEditProfileBtn')) { e.preventDefault(); e.stopPropagation(); window.tasOpenProfileEdit(); }
-    else if (t.closest('#clientAddProgressBtn')) { e.preventDefault(); e.stopPropagation(); window.tasOpenAddEntry(); }
-    else if (t.closest('#calcPdfBtn')) { e.preventDefault(); e.stopPropagation(); window.tasGenerateCalcPDF(); }
+    if (t.closest('#clientEditProfileBtn')) { e.preventDefault(); safe(window.tasOpenProfileEdit)(e); }
+    else if (t.closest('#clientAddProgressBtn')) { e.preventDefault(); safe(window.tasOpenAddEntry)(e); }
+    else if (t.closest('#calcPdfBtn')) { e.preventDefault(); safe(window.tasGenerateCalcPDF)(e); }
   }, true);
+
+  // ============================================================
+  // 3b · ✏️ EDIT PROFILE — self-contained open + submit flow
+  // ------------------------------------------------------------
+  // This block deliberately does NOT depend on main.js/progress.js having
+  // bound successfully: it wires the Cancel button, backdrop dismissal and
+  // the Submit-for-Approval action itself (with graceful fallbacks to the
+  // legacy handlers), so the Edit Profile feature works end-to-end even if
+  // another script failed earlier in the page.
+  // ============================================================
+  function closeProfileModal() {
+    const m = $id('profileEditModal');
+    if (m) { try { m.classList.add('hidden'); } catch (e) {} }
+  }
+
+  // Cancel button + click-on-backdrop (guarded, idempotent wiring).
+  (function wireProfileModalDismissal() {
+    const cancel = $id('cancelProfileEditBtn');
+    if (cancel && cancel.dataset.peCancelWired !== '1') {
+      cancel.dataset.peCancelWired = '1';
+      cancel.addEventListener('click', safe(() => {
+        closeProfileModal();
+        const st = $id('profileEditStatus');
+        if (st) st.textContent = '';
+      }));
+    }
+    const modal = $id('profileEditModal');
+    if (modal && modal.dataset.peBackdropWired !== '1') {
+      modal.dataset.peBackdropWired = '1';
+      modal.addEventListener('click', (e) => { if (e.target === modal) closeProfileModal(); });
+    }
+  })();
+
+  window.tasSubmitProfileEdit = async function () {
+    const S = window.APP_STATE;
+    const c = S && S.loggedInClient;
+    if (!c) { showToastSafe('🔐 Please sign in first.', 'info'); return; }
+    const statusEl = $id('profileEditStatus');
+    const sb = S.supabaseClient;
+    if (!sb || typeof sb.from !== 'function') {
+      if (statusEl) statusEl.textContent = '❌ Cloud connection not ready — please reload the page and try again.';
+      showToastSafe('❌ Not connected to the cloud yet. Reload and retry.', 'error');
+      return;
+    }
+    const btn = $id('submitProfileBtn');
+    const gv = (id) => { const el = $id(id); return el ? String(el.value || '').trim() : ''; };
+    const gn = (id) => { const n = parseFloat(gv(id)); return Number.isFinite(n) ? n : null; };
+    const proposed = {
+      height_cm: gn('peHeight'),
+      gender: gv('peGender') || null,
+      birth_date: /^\d{4}-\d{2}-\d{2}$/.test(gv('peBirth').slice(0, 10)) ? gv('peBirth').slice(0, 10) : null,
+      goal: gv('peGoal') || null,
+      medical_notes: gv('peMedical') || null,
+      emergency_contact: gv('peEmergency') || null,
+      // 📌 Shared Inputs (fit_* columns → powers the Calculators tab & PDF)
+      fit_weight_kg: gn('pcWeight'), fit_height_cm: gn('pcHeightCm'), fit_age: gn('pcAge'),
+      fit_gender: gv('pcGenderSel') || null, fit_activity_level: gv('pcActivity') || null,
+      fit_goal: gv('pcGoalSel') || null,
+      fit_waist_cm: gn('pcWaist'), fit_neck_cm: gn('pcNeck'), fit_hip_cm: gn('pcHip'),
+      fit_bench_kg: gn('pcBench'), fit_body_fat_pct: gn('pcBodyfat')
+    };
+    // Nothing changed? Don't spam the trainer with an empty approval.
+    const cur = (typeof clientMapGet === 'function' && S.clientProfiles)
+      ? (clientMapGet(S.clientProfiles, c.id) || {}) : {};
+    const hasChange = Object.keys(proposed).some(k => {
+      const a = proposed[k], b = cur[k];
+      if (a == null && (b == null || b === '')) return false;
+      return String(a) !== String(b);
+    });
+    if (!hasChange) {
+      if (statusEl) statusEl.textContent = 'ℹ️ Nothing to submit — your details are unchanged.';
+      return;
+    }
+    try {
+      if (btn) btn.disabled = true;
+      if (statusEl) statusEl.textContent = '⏳ Submitting…';
+      const { data, error } = await sb.from('profile_approvals')
+        .insert({ client_id: c.id, proposed_data: proposed, current_data: cur, status: 'pending' })
+        .select().single();
+      if (error && typeof window.isSchemaMissingError === 'function' && window.isSchemaMissingError(error)) {
+        // Migration not applied → retry WITHOUT the fit_* stats so the basic
+        // edit still reaches the trainer (run sql/pdf_calculator_fix.sql to
+        // enable the full calculator fields).
+        Object.keys(proposed).forEach(k => { if (k.startsWith('fit_')) delete proposed[k]; });
+        const retry = await sb.from('profile_approvals')
+          .insert({ client_id: c.id, proposed_data: proposed, current_data: cur, status: 'pending' })
+          .select().single();
+        if (retry.error) throw retry.error;
+        if (statusEl) statusEl.textContent = '✅ Submitted! ⚠️ Run sql/pdf_calculator_fix.sql in Supabase to enable calculator body stats.';
+        closeProfileModal();
+      } else if (error) {
+        throw error;
+      } else {
+        if (Array.isArray(S.profileApprovals)) S.profileApprovals.unshift(data);
+        closeProfileModal();
+        if (statusEl) statusEl.textContent = '✅ Submitted for approval! Your trainer will review it shortly.';
+        showToastSafe('✅ Profile changes submitted for approval!', 'success');
+      }
+      if (typeof window.syncClientPendingBanner === 'function') window.syncClientPendingBanner();
+      if (typeof window.updateApprovalsBadge === 'function') window.updateApprovalsBadge();
+    } catch (err) {
+      console.error('tasSubmitProfileEdit:', err);
+      const msg = (err && err.message) ? err.message : String(err);
+      if (statusEl) statusEl.textContent = '❌ ' + msg;
+      showToastSafe('❌ Could not submit: ' + msg, 'error');
+    } finally {
+      if (btn) btn.disabled = false;
+    }
+  };
+
+  // Wire the submit + cancel buttons directly as well (in addition to the
+  // main.js binding). Duplicate bindings are harmless because both paths
+  // converge on guarded functions, but this guarantees the buttons work
+  // even when main.js bind() aborted early.
+  (function wireProfileModalActions() {
+    const submit = $id('submitProfileBtn');
+    if (submit && submit.dataset.peSubmitWired !== '1') {
+      submit.dataset.peSubmitWired = '1';
+      submit.addEventListener('click', safe(() => {
+        // Prefer the legacy handler when it is fully functional; otherwise
+        // fall back to the self-contained one above. Both insert into
+        // profile_approvals — the fallback only runs if the legacy path
+        // throws before hitting the network (missing elements etc.).
+        if (typeof window.submitProfileEdit === 'function') {
+          try {
+            const r = window.submitProfileEdit();
+            if (r && typeof r.catch === 'function') r.catch((e) => {
+              console.warn('legacy submitProfileEdit failed, using fallback:', e);
+              window.tasSubmitProfileEdit();
+            });
+            return;
+          } catch (e) {
+            console.warn('legacy submitProfileEdit threw, using fallback:', e);
+          }
+        }
+        window.tasSubmitProfileEdit();
+      }));
+    }
+  })();
+
+  // Delegated fallback for client tab switching (Plan/History/Progress/
+  // Calculators/Profile): only attaches listeners for buttons that exist,
+  // and works even if main.js bind() ever fails on an unrelated element.
+  function ensureClientTabBindings() {
+    document.querySelectorAll('.tab-btn[data-ctab]').forEach(btn => {
+      if (btn.dataset.ctabBound === '1') return;
+      btn.dataset.ctabBound = '1';
+      btn.addEventListener('click', safe(() => {
+        const tab = btn.dataset.ctab;
+        document.querySelectorAll('.tab-btn[data-ctab]').forEach(b => b.classList.toggle('active', b === btn));
+        document.querySelectorAll('.tab-content[id^="ctab-"]').forEach(tEl => tEl.classList.toggle('hidden', tEl.id !== 'ctab-' + tab));
+        if (tab === 'calculators' && typeof window.injectTasPdfButton === 'function') window.injectTasPdfButton();
+      }));
+    });
+  }
+  ensureClientTabBindings();
+  // Re-run after render cycles (dashboard re-renders may replace markup).
+  setInterval(ensureClientTabBindings, 2500);
 
   // Backstop: if the app boots while a modal is somehow left open, close it.
   document.addEventListener('keydown', (e) => {
@@ -178,18 +383,21 @@
   window.loadJsPDF = function () {
     if (window.jspdf && window.jspdf.jsPDF) return Promise.resolve(window.jspdf.jsPDF);
     if (pdfLoading) return pdfLoading;
+    // Try the locally-bundled engine first (offline/PWA-safe), then the CDN.
+    // 🛡️ If a stale service worker serves an HTML error page instead of the
+    // local file, window.jspdf will be missing after load — treat that as a
+    // failure and fall through to the CDN instead of hanging/throwing later.
     const inject = (src) => new Promise((resolve, reject) => {
       const s = document.createElement('script');
       s.src = src;
       s.async = true;
       s.onload = () => {
         if (window.jspdf && window.jspdf.jsPDF) resolve(window.jspdf.jsPDF);
-        else reject(new Error('jsPDF loaded but global missing'));
+        else reject(new Error('jsPDF loaded but global missing from ' + src));
       };
       s.onerror = () => reject(new Error('Failed to load ' + src));
       document.head.appendChild(s);
     });
-    // Try the locally-bundled engine first (offline/PWA-safe), then the CDN.
     pdfLoading = inject(JSPDF_LOCAL)
       .catch(() => inject(JSPDF_CDN))
       .then((ctor) => { pdfLoading = null; return ctor; })
@@ -224,13 +432,37 @@
       if (typeof window.profileHasCalcStats === 'function' && window.profileHasCalcStats(p)) {
         Object.assign(stats, window.profileCalcStats(p));
       }
-      // Live inputs currently shown in the profile shared panel take priority.
-      const liveMap = { weight: 'pcx-weight', height: 'pcx-height', age: 'pcx-age', gender: 'pcx-gender', activity: 'pcx-activity', goal: 'pcx-goal', waist: 'pcx-waist', neck: 'pcx-neck', hip: 'pcx-hip', bench: 'pcx-bench', bodyfat: 'pcx-bodyfat' };
-      Object.entries(liveMap).forEach(([k, id]) => {
-        const el = $id(id);
+      // 🛡️ FIX: the Shared Inputs on 👤 My Profile use ids pcWeight/pcHeightCm/…
+      // (see PROFILE_STAT_INPUTS in calculators.js). The old code looked for
+      // non-existent "pcx-*" ids, so live edits were silently ignored and
+      // empty/NaN fields leaked into the geometry below → jsPDF threw
+      // "Invalid argument passed to jsPDF.f2". Read the REAL inputs now,
+      // falling back to the legacy ids just in case.
+      const liveMap = {
+        weight: ['pcWeight', 'pcx-weight'], height: ['pcHeightCm', 'pcx-height'],
+        age: ['pcAge', 'pcx-age'], gender: ['pcGenderSel', 'pcx-gender'],
+        activity: ['pcActivity', 'pcx-activity'], goal: ['pcGoalSel', 'pcx-goal'],
+        waist: ['pcWaist', 'pcx-waist'], neck: ['pcNeck', 'pcx-neck'],
+        hip: ['pcHip', 'pcx-hip'], bench: ['pcBench', 'pcx-bench'],
+        bodyfat: ['pcBodyfat', 'pcx-bodyfat']
+      };
+      Object.entries(liveMap).forEach(([k, ids]) => {
+        let el = null;
+        for (const id of ids) { el = $id(id); if (el) break; }
         if (!el) return;
         if (el.tagName === 'SELECT') { if (el.value) stats[k] = el.value; }
         else { const n = parseFloat(el.value); if (Number.isFinite(n)) stats[k] = n; }
+      });
+      // 🛡️ Never let NaN/empty strings reach the renderer or the math:
+      // any stat that isn't a finite number (or known text option) reverts
+      // to the safe default.
+      Object.keys(stats).forEach(k => {
+        if (k === 'gender' || k === 'activity' || k === 'goal') {
+          if (typeof stats[k] !== 'string' || !stats[k]) stats[k] = window.__calcDefaults ? window.__calcDefaults[k] : '—';
+        } else {
+          const n = parseFloat(stats[k]);
+          stats[k] = Number.isFinite(n) ? n : (window.__calcDefaults ? window.__calcDefaults[k] : 0);
+        }
       });
 
       const R = computeCalcResults(stats);
@@ -243,35 +475,41 @@
       const PW = 210, PH = 297, M = 14, CW = PW - M * 2;
       let y = 0;
 
-      // 🛡️ Geometry sanitizer — jsPDF throws "Invalid number passed to rect/
-      // triangle/circle" whenever any coordinate is NaN/Infinity (which happens
-      // when age/weight/maxHr etc. are missing). Clamp everything to finite.
-      const nz = (v, d) => (Number.isFinite(v) ? v : (d === undefined ? 0 : d));
+      // 🛡️ Geometry sanitizer — jsPDF 2.5.2 throws "Invalid argument passed to
+      // jsPDF.f2 / f3" (the internal float formatters) whenever ANY coordinate
+      // or color component is NaN/Infinity, and it rejects RGB colors passed
+      // as an ARRAY — they must be spread as separate numbers. Everything
+      // below is clamped through nz()/rgb() so no NaN can ever reach jsPDF.
+      const nz = (v, d) => { const n = Number(v); return Number.isFinite(n) ? n : (d === undefined ? 0 : d); };
       const nzw = (v) => Math.max(0, nz(v, 0));           // widths/heights ≥ 0
-      const rgb = (arr) => arr;
+      const rgb = (arr) => (Array.isArray(arr) ? arr.map(v => nz(v, 0)) : [nz(arr, 0), nz(arr, 0), nz(arr, 0)]);
       const text = (str, x, yy, size, color, style, align) => {
         doc.setFont('helvetica', style || 'normal');
         doc.setFontSize(nz(size, 8));
-        doc.setTextColor(rgb(color));
-        doc.text(String(str), nz(x), nz(yy), { align: align || 'left' });
+        const col = rgb(color);
+        doc.setTextColor(col[0], col[1], col[2]);
+        doc.text(String(str == null ? '' : str), nz(x), nz(yy), { align: align || 'left' });
       };
       const rect = (x, yy, w, h, fill, r) => {
         w = nzw(w); h = nzw(h);
         if (w <= 0 || h <= 0) return;
-        doc.setFillColor(rgb(fill));
-        if (r) doc.roundedRect(nz(x), nz(yy), w, h, nz(r), nz(r), 'F');
+        const col = rgb(fill);
+        doc.setFillColor(col[0], col[1], col[2]);
+        if (r) doc.roundedRect(nz(x), nz(yy), w, h, nz(r, 2), nz(r, 2), 'F');
         else doc.rect(nz(x), nz(yy), w, h, 'F');
       };
       const stroke = (x, yy, w, h, color, lw, r) => {
         w = nzw(w); h = nzw(h);
         if (w <= 0 || h <= 0) return;
-        doc.setDrawColor(rgb(color));
-        doc.setLineWidth(nz(lw, 0.3) || 0.3);
-        if (r) doc.roundedRect(nz(x), nz(yy), w, h, nz(r), nz(r), 'S');
+        const col = rgb(color);
+        doc.setDrawColor(col[0], col[1], col[2]);
+        doc.setLineWidth(Math.max(0.1, nz(lw, 0.3)));
+        if (r) doc.roundedRect(nz(x), nz(yy), w, h, nz(r, 2), nz(r, 2), 'S');
         else doc.rect(nz(x), nz(yy), w, h, 'S');
       };
       const grad = (x, yy, w, h, from, to) => {
-        const steps = Math.max(8, Math.floor(w * 2));
+        from = rgb(from); to = rgb(to);
+        const steps = Math.max(8, Math.floor(nz(w, 0) * 2));
         const sw = w / steps + 0.15;
         for (let i = 0; i < steps; i++) {
           const k = i / (steps - 1);
@@ -373,7 +611,9 @@
           });
           stroke(gx, gy, gw, 7, [235, 240, 238], 0.2);
           const px = gx + (Math.min(Math.max(R.bmi, 0), 40) / 40) * gw;
-          doc.setFillColor(C.ink); doc.triangle(nz(px - 2), nz(gy - 2.6), nz(px + 2), nz(gy - 2.6), nz(px), nz(gy + 0.6), 'F');
+          const ink = rgb(C.ink);
+          doc.setFillColor(ink[0], ink[1], ink[2]);
+          doc.triangle(nz(px - 2), nz(gy - 2.6), nz(px + 2), nz(gy - 2.6), nz(px), nz(gy + 0.6), 'F');
           text(f1(R.bmi), px, gy - 4.4, 8, C.ink, 'bold', 'center');
         } else {
           text('Enter age/height/weight in 👤 My Profile to compute BMI.', gx, gy + 4, 7, C.soft, 'italic');
@@ -454,7 +694,7 @@
           text(cd.value, cx + cW - 3, cy + 5.3, 7.4, [255, 255, 255], 'bold', 'right');
           let dy = cy + 13;
           (cd.details || []).slice(0, 3).forEach(d => {
-            doc.setFillColor(196, 214, 205); doc.circle(cx + 3.6, dy - 1.1, 0.6, 'F');
+            const dot = rgb([196, 214, 205]); doc.setFillColor(dot[0], dot[1], dot[2]); doc.circle(cx + 3.6, dy - 1.1, 0.6, 'F');
             text(d, cx + 6, dy, 6.3, C.ink, 'normal');
             dy += 5;
           });
@@ -506,18 +746,26 @@
           }
           const X = (i) => px0 + (px1 - px0) * (pts.length === 1 ? 0.5 : i / (pts.length - 1));
           const Y = (v) => py1 - (py1 - py0) * ((nz(v, vMin) - vMin) / (vMax - vMin));
-          // area fill
-          doc.setFillColor(24, 199, 146);
-          doc.setGState(new doc.GState({ opacity: 0.14 }));
+          // area fill (🛡️ setGState can throw on some jsPDF builds — guard it)
+          const acc = rgb([24, 199, 146]);
+          let gstateOk = false;
+          try {
+            if (typeof doc.GState === 'function') {
+              doc.setGState(new doc.GState({ opacity: 0.14 }));
+              gstateOk = true;
+            }
+          } catch (_) { gstateOk = false; }
+          doc.setFillColor(acc[0], acc[1], acc[2]);
           const poly = pts.map((e, i) => [X(i), Y(parseFloat(e.weight_kg))]);
           for (let i = 0; i < poly.length - 1; i++) {
-            doc.triangle(nz(poly[i][0]), nz(poly[i][1]), nz(poly[i + 1][0]), nz(poly[i + 1][1]), nz(poly[i][0]), py1, 'F');
-            doc.triangle(nz(poly[i + 1][0]), nz(poly[i + 1][1]), nz(poly[i + 1][0]), py1, nz(poly[i][0]), py1, 'F');
+            doc.triangle(nz(poly[i][0]), nz(poly[i][1]), nz(poly[i + 1][0]), nz(poly[i + 1][1]), nz(poly[i][0]), nz(py1), 'F');
+            doc.triangle(nz(poly[i + 1][0]), nz(poly[i + 1][1]), nz(poly[i + 1][0]), nz(py1), nz(poly[i][0]), nz(py1), 'F');
           }
-          doc.setGState(new doc.GState({ opacity: 1 }));
-          doc.setDrawColor(31, 78, 61); doc.setLineWidth(0.7);
+          if (gstateOk) { try { doc.setGState(new doc.GState({ opacity: 1 })); } catch (_) {} }
+          const brandC = rgb(C.brand);
+          doc.setDrawColor(brandC[0], brandC[1], brandC[2]); doc.setLineWidth(0.7);
           for (let i = 0; i < poly.length - 1; i++) doc.line(nz(poly[i][0]), nz(poly[i][1]), nz(poly[i + 1][0]), nz(poly[i + 1][1]));
-          poly.forEach(pt => { doc.setFillColor(C.brand); doc.circle(nz(pt[0]), nz(pt[1]), 1.1, 'F'); });
+          poly.forEach(pt => { doc.setFillColor(brandC[0], brandC[1], brandC[2]); doc.circle(nz(pt[0]), nz(pt[1]), 1.1, 'F'); });
           text(String(pts[0].entry_date || ''), px0, py1 + 5, 5.2, C.soft, 'normal');
           text(String(pts[pts.length - 1].entry_date || ''), px1, py1 + 5, 5.2, C.soft, 'normal', 'right');
           y += chH + 15;
@@ -548,9 +796,10 @@
       text('Certified coaching: sutariaabhi98@gmail.com · wa.me/971521391505', M, fy + 13, 6.4, C.soft, 'normal');
       text('This report is an estimate-based guide, not medical advice.', PW - M, fy + 8, 6.4, C.soft, 'italic', 'right');
 
-      // page numbers chrome for later pages
+      // page numbers chrome for later pages (🛡️ spread colors, never arrays)
       function drawPageChrome(d, name) {
-        d.setFillColor(rgb(C.brand));
+        const bc = rgb(C.brand);
+        d.setFillColor(bc[0], bc[1], bc[2]);
         d.rect(0, 0, PW, 10, 'F');
         d.setFont('helvetica', 'bold'); d.setFontSize(7);
         d.setTextColor(255, 255, 255);
@@ -571,7 +820,11 @@
       showToastSafe('📄 Professional PDF report generated — check your downloads!', 'success');
     } catch (err) {
       console.error('PDF generation failed:', err);
-      showToastSafe('❌ PDF failed: ' + (err.message || err) + ' — check your internet connection and retry.', 'error');
+      const msg = String(err && err.message || err || 'unknown error');
+      // Engine-load failures are network-related; everything else is a code
+      // issue — don't blame the user's internet connection for it.
+      const netIssue = /could not be loaded|Failed to load/i.test(msg);
+      showToastSafe('❌ PDF failed: ' + msg + (netIssue ? ' — check your internet connection and retry.' : ''), 'error');
     } finally {
       if (btn) { btn.disabled = false; btn.innerHTML = '📄 Generate PDF'; }
     }
@@ -666,6 +919,8 @@
       '<span class="calc-pdf-hint">Branded multi-page report · charts, KPIs &amp; progress trends</span>';
     head.appendChild(wrap);
   }
+  // Exposed so tab-switching (and any late hub re-render) can force a retry.
+  window.injectTasPdfButton = injectPdfButton;
   function startInjector() {
     injectPdfButton();
     const target = document.getElementById('ctab-calculators');
