@@ -590,28 +590,35 @@ window.renderClientUpcoming = function (c) {
 };
 
 window.openProgressModal = function (entry, clientId, addedBy) {
+  // Guarded opener: every field lookup is optional so a missing/renamed
+  // input can never throw before the modal appears (this was the root
+  // cause of "➕ Add Entry is not working" in the client portal).
+  const setVal = (id, v) => { const el = $(id); if (el) el.value = v; };
   APP_STATE.selectedClientForProgress = { clientId, addedBy };
   if (entry) {
-    $('editProgressId').value = entry.id;
-    $('progressModalTitle').textContent = '✏️ Edit';
-    $('pgDate').value = entry.entry_date || '';
-    $('pgWeight').value = entry.weight_kg || '';
-    $('pgBodyFat').value = entry.body_fat_pct || '';
-    $('pgChest').value = entry.chest_cm || '';
-    $('pgWaist').value = entry.waist_cm || '';
-    $('pgHips').value = entry.hips_cm || '';
-    $('pgArms').value = entry.arms_cm || '';
-    $('pgThighs').value = entry.thighs_cm || '';
-    $('pgNotes').value = entry.notes || '';
-    $('pgPhoto').value = entry.photo_url || '';
+    setVal('editProgressId', entry.id);
+    const t = $('progressModalTitle'); if (t) t.textContent = '✏️ Edit';
+    setVal('pgDate', entry.entry_date || '');
+    setVal('pgWeight', entry.weight_kg || '');
+    setVal('pgBodyFat', entry.body_fat_pct || '');
+    setVal('pgChest', entry.chest_cm || '');
+    setVal('pgWaist', entry.waist_cm || '');
+    setVal('pgHips', entry.hips_cm || '');
+    setVal('pgArms', entry.arms_cm || '');
+    setVal('pgThighs', entry.thighs_cm || '');
+    setVal('pgNotes', entry.notes || '');
+    setVal('pgPhoto', entry.photo_url || '');
   } else {
-    $('editProgressId').value = '';
-    $('progressModalTitle').textContent = addedBy === 'admin' ? '➕ Add (as Admin)' : '➕ Add My Progress';
-    $('pgDate').value = new Date().toISOString().split('T')[0];
+    setVal('editProgressId', '');
+    const t = $('progressModalTitle');
+    if (t) t.textContent = addedBy === 'admin' ? '➕ Add (as Admin)' : '➕ Add My Progress';
+    setVal('pgDate', new Date().toISOString().split('T')[0]);
     ['pgWeight', 'pgBodyFat', 'pgChest', 'pgWaist', 'pgHips', 'pgArms', 'pgThighs', 'pgNotes', 'pgPhoto']
-      .forEach(i => $(i).value = '');
+      .forEach(i => setVal(i, ''));
   }
-  $('progressModal').classList.remove('hidden');
+  const modal = $('progressModal');
+  if (!modal) return;
+  modal.classList.remove('hidden');
   clearStatus($('progressModalStatus'));
 };
 
