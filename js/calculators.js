@@ -65,6 +65,59 @@
   function f2(v) { return Number.isFinite(v) ? v.toFixed(2) : '—'; }
   function i0(v) { return Number.isFinite(v) ? Math.round(v).toLocaleString() : '—'; }
 
+  // ---------- profile body stats (shared with the client Profile tab) ----------
+  // The 11 shared inputs are ALSO stored as columns on client_profiles
+  // (sql/fitness_calculator.sql). When a profile row carries at least one of
+  // them, those approved values become the calculator hub's defaults for that
+  // client — so "Edit Profile → Calculator Body Stats" feeds every card.
+  const PROFILE_STAT_COLS = {
+    weight: 'fit_weight_kg', height: 'fit_height_cm', age: 'fit_age',
+    gender: 'fit_gender', activity: 'fit_activity_level', goal: 'fit_goal',
+    waist: 'fit_waist_cm', neck: 'fit_neck_cm', hip: 'fit_hip_cm',
+    bench: 'fit_bench_kg', bodyfat: 'fit_body_fat_pct'
+  };
+
+  window.profileHasCalcStats = function (p) {
+    if (!p) return false;
+    return Object.values(PROFILE_STAT_COLS).some(k => p[k] !== null && p[k] !== undefined && p[k] !== '');
+  };
+
+  window.profileCalcStats = function (p) {
+    const out = {};
+    Object.entries(PROFILE_STAT_COLS).forEach(([key, col]) => {
+      let v = p ? p[col] : null;
+      if (v === undefined || v === null || v === '') return;
+      if (key === 'gender' || key === 'activity' || key === 'goal') {
+        const allowed = FIELDS.find(f => f[0] === key)[2];   // dropdown options
+        v = String(v);
+        if (!allowed.includes(v)) return;                    // ignore unknown values
+      } else {
+        v = num(v);
+        if (!Number.isFinite(v)) return;
+      }
+      out[key] = v;
+    });
+    return out;
+  };
+
+  async function mergeProfileStats(clientId, baseInputs) {
+    // Fresh read of the approved profile row (works even when the full
+    // client_profiles load happened before this feature existed).
+    let p = null;
+    try {
+      const sb = APP_STATE.supabaseClient;
+      if (sb) {
+        const { data, error } = await sb.from('client_profiles')
+          .select('*').eq('client_id', String(clientId)).maybeSingle();
+        if (!error && data) p = data;
+      }
+    } catch (e) { /* missing table/columns → profile stats simply skipped */ }
+    if (!p) p = (typeof clientMapGet === 'function' && clientMapGet(APP_STATE.clientProfiles, clientId)) || null;
+    if (!p || !window.profileHasCalcStats(p)) return baseInputs;
+    const stats = window.profileCalcStats(p);
+    return Object.assign({}, DEFAULTS, stats, baseInputs || {});
+  }
+
   // ---------- cloud/local persistence ----------
   function lsKey(id) { return LS_PREFIX + String(id); }
 
@@ -86,6 +139,8 @@
           if (raw) loaded = JSON.parse(raw);
         } catch (e) { }
       }
+      // Approved profile body stats fill any field the hub has never saved yet.
+      loaded = await mergeProfileStats(clientId, loaded);
     }
     current = Object.assign({}, DEFAULTS, loaded || {});
     renderInputs();
@@ -123,6 +178,55 @@
         if (k && k.startsWith(LS_PREFIX)) localStorage.removeItem(k);
       }
     } catch (e) { }
+  };
+
+  // Called by js/approvals.js right after a trainer approves profile edits:
+  // copies the approved fit_* profile columns into this client's saved
+  // calculator inputs so the Calculators tab reflects them instantly.
+  window.syncFitnessInputsFromProfile = async function (clientId) {
+    if (!clientId || clientId === 'guest') return;
+    let p = null;
+    try {
+      const sb = APP_STATE.supabaseClient;
+      if (sb) {
+        const { data } = await sb.from('client_profiles')
+          .select('*').eq('client_id', String(clientId)).maybeSingle();
+        p = data || null;
+      }
+    } catch (e) { /* migration not run — nothing to sync */ }
+    if (!p) p = (typeof clientMapGet === 'function' && clientMapGet(APP_STATE.clientProfiles, clientId)) || null;
+    if (!p || !window.profileHasCalcStats(p)) return;
+    const stats = window.profileCalcStats(p);
+    let existing = null;
+    try {
+      const sb = APP_STATE.supabaseClient;
+      if (sb) {
+        const { data } = await sb.from('fitness_inputs')
+          .select('inputs').eq('client_id', String(clientId)).maybeSingle();
+        if (data && data.inputs) existing = data.inputs;
+      }
+    } catch (e) { }
+    if (!existing) {
+      try {
+        const raw = localStorage.getItem(lsKey(String(clientId)));
+        if (raw) existing = JSON.parse(raw);
+      } catch (e) { }
+    }
+    const merged = Object.assign({}, DEFAULTS, existing || {}, stats);
+    try { localStorage.setItem(lsKey(String(clientId)), JSON.stringify(merged)); } catch (e) { }
+    try {
+      const sb = APP_STATE.supabaseClient;
+      if (sb) {
+        await sb.from('fitness_inputs').upsert(
+          { client_id: String(clientId), inputs: merged, updated_at: new Date().toISOString() },
+          { onConflict: 'client_id' });
+      }
+    } catch (e) { /* table missing → local copy still updated */ }
+    if (String(scopeId) === String(clientId)) {
+      current = merged;
+      renderInputs();
+      renderCards();
+    }
   };
 
   // Called by the per-client delete cascade (js/clients.js).
@@ -493,6 +597,35 @@
       <div class="calc-grid" data-calcscope="${scope}"></div>`;
     bindTabs(container);
   }
+
+  // ---------- profile-edit prefill (✏️ Edit Profile modal) ----------
+  // Fills the "Calculator Body Stats" section of the client's profile-edit
+  // modal. Priority: approved fit_* profile columns → the hub state that is
+  // currently loaded for this client → spec defaults.
+  const PROFILE_STAT_INPUTS = {
+    weight: 'pcWeight', height: 'pcHeightCm', age: 'pcAge', gender: 'pcGenderSel',
+    activity: 'pcActivity', goal: 'pcGoalSel', waist: 'pcWaist', neck: 'pcNeck',
+    hip: 'pcHip', bench: 'pcBench', bodyfat: 'pcBodyfat'
+  };
+  window.prefillProfileCalcStats = function (profileRow) {
+    const stats = Object.assign({}, DEFAULTS);
+    if (scopeId && String(scopeId) === String((APP_STATE.loggedInClient || {}).id)) {
+      Object.assign(stats, current);                       // live hub values
+    }
+    if (profileRow && window.profileHasCalcStats(profileRow)) {
+      Object.assign(stats, window.profileCalcStats(profileRow));
+    }
+    Object.entries(PROFILE_STAT_INPUTS).forEach(([key, id]) => {
+      const el = $(id);
+      if (!el) return;
+      const v = stats[key];
+      if (typeof v === 'string') {
+        if ([...el.options].some(o => o.value === v)) el.value = v;
+      } else {
+        el.value = Number.isFinite(v) ? v : '';
+      }
+    });
+  };
 
   window.mountCalcHub = mountHub;
 

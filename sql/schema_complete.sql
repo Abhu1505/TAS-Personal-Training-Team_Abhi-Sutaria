@@ -75,6 +75,41 @@ create table if not exists public.client_profiles (
 alter table public.client_profiles add column if not exists approved_at timestamptz;
 alter table public.client_profiles add column if not exists approved_by text;
 
+-- 🧮 Calculator Body Stats (sql/fitness_calculator.sql) — the 11 shared
+-- inputs of the Calculators tab, editable under 👤 Profile → ✏️ Edit Profile.
+alter table public.client_profiles add column if not exists fit_weight_kg       numeric;
+alter table public.client_profiles add column if not exists fit_height_cm       numeric;
+alter table public.client_profiles add column if not exists fit_age             numeric;
+alter table public.client_profiles add column if not exists fit_gender          text;
+alter table public.client_profiles add column if not exists fit_activity_level  text;
+alter table public.client_profiles add column if not exists fit_goal            text;
+alter table public.client_profiles add column if not exists fit_waist_cm        numeric;
+alter table public.client_profiles add column if not exists fit_neck_cm         numeric;
+alter table public.client_profiles add column if not exists fit_hip_cm          numeric;
+alter table public.client_profiles add column if not exists fit_bench_kg        numeric;
+alter table public.client_profiles add column if not exists fit_body_fat_pct    numeric;
+
+-- ------------------------------------------------------------
+-- 3b. FITNESS INPUTS — saved state of the 🧮 Calculator Hub's shared panel
+--     (one jsonb row per client; autosaved by js/calculators.js).
+-- ------------------------------------------------------------
+create table if not exists public.fitness_inputs (
+  id         uuid primary key default gen_random_uuid(),
+  client_id  text not null unique,
+  inputs     jsonb not null default '{}'::jsonb,
+  updated_at timestamptz not null default now()
+);
+create index if not exists fi_client_idx on public.fitness_inputs (client_id);
+alter table public.fitness_inputs enable row level security;
+drop policy if exists "fitness_inputs_select" on public.fitness_inputs;
+create policy "fitness_inputs_select" on public.fitness_inputs for select using (true);
+drop policy if exists "fitness_inputs_insert" on public.fitness_inputs;
+create policy "fitness_inputs_insert" on public.fitness_inputs for insert with check (true);
+drop policy if exists "fitness_inputs_update" on public.fitness_inputs;
+create policy "fitness_inputs_update" on public.fitness_inputs for update using (true) with check (true);
+drop policy if exists "fitness_inputs_delete" on public.fitness_inputs;
+create policy "fitness_inputs_delete" on public.fitness_inputs for delete using (true);
+
 -- ------------------------------------------------------------
 -- 4. PROGRESS ENTRIES (official measurements, admin-saved)
 -- ------------------------------------------------------------
@@ -348,7 +383,7 @@ begin
     'sessions','workout_logs','daily_times','client_exercises','exercises',
     'workout_edit_requests','profile_approvals','progress_approvals',
     'progress_entries','client_settings','client_profiles','clients',
-    'client_requests','progress_reports'
+    'client_requests','progress_reports','fitness_inputs'
   ] loop
     if not exists (select 1 from pg_publication_tables
                    where pubname = 'supabase_realtime' and tablename = t) then

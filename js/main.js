@@ -271,6 +271,12 @@
       $('peGoal').value = p.goal || '';
       $('peMedical').value = p.medical_notes || '';
       $('peEmergency').value = p.emergency_contact || '';
+      // 🧮 Calculator Body Stats section — prefill from the approved profile
+      // (fit_* columns), falling back to whatever the calculator hub currently
+      // has saved for this client, then to the hub defaults.
+      if (typeof window.prefillProfileCalcStats === 'function') {
+        window.prefillProfileCalcStats(p);
+      }
       $('profileEditModal').classList.remove('hidden');
       clearStatus($('profileEditStatus'));
     });
