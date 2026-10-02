@@ -2,6 +2,8 @@ window.renderClientList = function () {
   const container = $('clientListContainer');
   if (!container) return;
   const searchEl = $('clientSearchInput');
+  // Normalize the query to lowercase so case-insensitive matching works
+  // even when the user types an uppercase login ID (e.g. "ALI-9786").
   const q = (searchEl && searchEl.value || '').trim().toLowerCase();
   const countEl = $('clientSearchCount');
 
@@ -221,6 +223,10 @@ window.confirmDeleteClient = async function () {
     await delFor('client_requests', id);
     await delFor('workout_edit_requests', id);
     await delFor('progress_reports', id);
+    // 🧮 Calculator hub saved inputs for this client (+ local cache).
+    if (typeof window.deleteFitnessInputsFor === 'function') {
+      try { await window.deleteFitnessInputsFor(id, loginId); } catch (e) { console.warn('delete client: fitness_inputs skipped', e); }
+    }
     await delFor('client_profiles', id);
     await delFor('client_settings', id);
     await delBy('clients', 'id', id);

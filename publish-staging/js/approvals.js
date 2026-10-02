@@ -124,6 +124,14 @@ window.decideApproval = async function (id, decision, type) {
     const m = (err && err.message) || '';
     return /could not find.*column|schema cache/i.test(m) && /decided_at|admin_note/i.test(m);
   }
+  // Generic "column/table doesn't exist in the schema cache" detector — used
+  // for optional migrations (e.g. sql/fitness_calculator.sql fit_* profile
+  // columns and the fitness_inputs table). Approvals must never hard-fail
+  // just because a newer migration hasn't been run yet.
+  window.isSchemaMissingError = function (err) {
+    const m = (err && err.message) || '';
+    return /could not find .*column|schema cache|relation .* does not exist|not found in the schema cache/i.test(m);
+  };
   try {
     let updates;
     if (APP_STATE.__approvalsExtraColsOk === false) {
@@ -182,6 +190,15 @@ window.decideApproval = async function (id, decision, type) {
           emergency_contact: a.proposed_data.emergency_contact ?? null,
           updated_at: new Date().toISOString(),
         };
+        // 🧮 Calculator Body Stats — fit_* columns added by
+        // sql/fitness_calculator.sql. Only sent when the proposal contains
+        // them; stripped again below if the migration isn't applied yet.
+        const hasFitStats = Object.keys(a.proposed_data).some(k => k.startsWith('fit_'));
+        if (hasFitStats) {
+          ['fit_weight_kg', 'fit_height_cm', 'fit_age', 'fit_gender', 'fit_activity_level',
+           'fit_goal', 'fit_waist_cm', 'fit_neck_cm', 'fit_hip_cm', 'fit_bench_kg',
+           'fit_body_fat_pct'].forEach(k => { payload[k] = a.proposed_data[k] ?? null; });
+        }
         // approved_at / approved_by come from sql/fix_approvals.sql; only send
         // them when the migration is known to be applied, so approval of the
         // profile itself never fails on a missing column.
@@ -197,8 +214,22 @@ window.decideApproval = async function (id, decision, type) {
           res2 = await APP_STATE.supabaseClient.from('client_profiles')
             .upsert(payload, { onConflict: 'client_id' });
         }
+        if (res2.error && hasFitStats && typeof window.isSchemaMissingError === 'function'
+            && window.isSchemaMissingError(res2.error)) {
+          // sql/fitness_calculator.sql not run → drop the fit_* columns and
+          // approve the rest of the profile normally.
+          Object.keys(payload).forEach(k => { if (k.startsWith('fit_')) delete payload[k]; });
+          res2 = await APP_STATE.supabaseClient.from('client_profiles')
+            .upsert(payload, { onConflict: 'client_id' });
+        }
         if (res2.error) throw res2.error;
         APP_STATE.clientProfiles[a.client_id] = { ...(APP_STATE.clientProfiles[a.client_id] || {}), ...payload };
+        // Push the approved stats straight into the calculator hub's saved
+        // inputs so the Calculators tab reflects them instantly (best-effort:
+        // silently skipped if the fitness_inputs table doesn't exist yet).
+        if (hasFitStats && typeof window.syncFitnessInputsFromProfile === 'function') {
+          try { await window.syncFitnessInputsFromProfile(a.client_id); } catch (e) { console.warn('fitness sync skipped', e); }
+        }
       }
       Object.assign(a, updates);
       renderApprovals(); updateApprovalsBadge(); renderClientList();

@@ -123,6 +123,10 @@ window.renderClientDashboard = function (c) {
   renderClientProgress(c);
   renderClientProfile(c);
   renderClientHistory(c);
+  // 🧮 Fitness Calculator Hub: restore this client's saved shared inputs.
+  if (typeof window.loadFitnessInputsFor === 'function') {
+    window.loadFitnessInputsFor(c.id).catch(() => {});
+  }
   initClientLogViewer();
 };
 

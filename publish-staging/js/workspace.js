@@ -9,17 +9,23 @@
 (function () {
   'use strict';
 
-  // Show one of the two admin workspaces (Home = create/stats, Clients = roster & tools).
+  // Show one of the admin workspaces (Home = create/stats, Clients = roster &
+  // tools, Calculators = Fitness Calculator Hub).
   window.showAdminWorkspaceTab = function (tab) {
     const home = $('adminWorkspaceHome');
     const clients = $('adminWorkspaceClients');
+    const calcs = $('adminWorkspaceCalculators');
     if (!home || !clients) return;
-    const isClients = tab === 'clients';
-    home.classList.toggle('hidden', isClients);
-    clients.classList.toggle('hidden', !isClients);
+    home.classList.toggle('hidden', tab !== 'home');
+    clients.classList.toggle('hidden', tab !== 'clients');
+    if (calcs) calcs.classList.toggle('hidden', tab !== 'calculators');
     document.querySelectorAll('.tab-btn[data-atab2]').forEach(b =>
-      b.classList.toggle('active', b.dataset.atab2 === (isClients ? 'clients' : 'home')));
-    if (isClients && typeof renderClientList === 'function') renderClientList();
+      b.classList.toggle('active', b.dataset.atab2 === tab));
+    if (tab === 'clients' && typeof renderClientList === 'function') renderClientList();
+    // 🧮 Calculators workspace: refresh the client dropdown + load selection.
+    if (tab === 'calculators' && typeof window.refreshCalcClientSelect === 'function') {
+      try { window.refreshCalcClientSelect(); } catch (e) {}
+    }
   };
 
   // Open a client from anywhere (e.g. the Reports panel) — switches to the

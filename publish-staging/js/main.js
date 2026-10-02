@@ -3,10 +3,22 @@
   'use strict';
 
   function bind() {
+    // 🛡️ Safe binder: attaches a listener only when the element exists.
+    // Previously dozens of unguarded $('id').addEventListener(...) calls for
+    // admin-only elements ran first; a single missing element threw and
+    // aborted every remaining binding — which is why most client-portal
+    // buttons (tabs, modals, logout…) silently stopped working.
+    const on = (id, evt, fn) => {
+      const el = $(id);
+      if (!el) return null;
+      el.addEventListener(evt, fn);
+      return el;
+    };
+
     // Login
-    $('unifiedLoginBtn').addEventListener('click', handleUnifiedLogin);
-    $('passwordInput').addEventListener('keypress', e => { if (e.key === 'Enter') handleUnifiedLogin(); });
-    $('loginIdInput').addEventListener('keypress', e => { if (e.key === 'Enter') handleUnifiedLogin(); });
+    on('unifiedLoginBtn', 'click', handleUnifiedLogin);
+    on('passwordInput', 'keypress', e => { if (e.key === 'Enter') handleUnifiedLogin(); });
+    on('loginIdInput', 'keypress', e => { if (e.key === 'Enter') handleUnifiedLogin(); });
 
     // Logout (two-step inline confirm — professional & fast)
     attachConfirmLogout($('clientLogoutBtn'));
@@ -126,9 +138,9 @@
     });
 
     // Exercise Library
-    $('addExerciseBtn').addEventListener('click', () => openExerciseModal(null));
-    $('cancelExerciseBtn').addEventListener('click', () => $('exerciseModal').classList.add('hidden'));
-    $('saveExerciseBtn').addEventListener('click', async () => {
+    on('addExerciseBtn', 'click', () => openExerciseModal(null));
+    on('cancelExerciseBtn', 'click', () => $('exerciseModal').classList.add('hidden'));
+    on('saveExerciseBtn', 'click', async () => {
       const name = $('exName').value.trim();
       if (!name) { showStatus($('exerciseModalStatus'), '⚠️ Name required.', 'error'); return; }
       const payload = {
@@ -165,34 +177,34 @@
     });
 
     // Create client
-    $('createClientBtn').addEventListener('click', createClient);
-    $('pickContactBtn').addEventListener('click', pickFromContacts);
+    on('createClientBtn', 'click', createClient);
+    on('pickContactBtn', 'click', pickFromContacts);
 
     // Client detail actions
-    $('closeClientBtn').addEventListener('click', closeSelectedClient);
-    $('reopenClientBtn').addEventListener('click', reopenSelectedClient);
-    $('deleteClientBtn').addEventListener('click', openDeleteClientModal);
-    $('viewLastSessionBtn').addEventListener('click', showMonthSummary);
-    $('ratePerSession').addEventListener('change', updateRatePerSession);
+    on('closeClientBtn', 'click', closeSelectedClient);
+    on('reopenClientBtn', 'click', reopenSelectedClient);
+    on('deleteClientBtn', 'click', openDeleteClientModal);
+    on('viewLastSessionBtn', 'click', showMonthSummary);
+    on('ratePerSession', 'change', updateRatePerSession);
 
     // Reminder
-    $('reminderNote').addEventListener('input', saveReminderNote);
-    $('sendWhatsappBtn').addEventListener('click', () => sendReminder('whatsapp'));
-    $('sendEmailBtn').addEventListener('click', () => sendReminder('email'));
+    on('reminderNote', 'input', saveReminderNote);
+    on('sendWhatsappBtn', 'click', () => sendReminder('whatsapp'));
+    on('sendEmailBtn', 'click', () => sendReminder('email'));
 
     // Month selector
-    $('monthSelect').addEventListener('change', changeMonth);
+    on('monthSelect', 'change', changeMonth);
 
     // Day log modal
-    $('addExerciseToggleBtn').addEventListener('click', () => {
+    on('addExerciseToggleBtn', 'click', () => {
       const body = $('addExerciseBody');
       const btn = $('addExerciseToggleBtn');
       const open = body.classList.toggle('hidden');
       btn.setAttribute('aria-expanded', String(!open));
       btn.querySelector('.aet-chevron').textContent = open ? '▾' : '▴';
     });
-    $('closeDayLogBtn').addEventListener('click', () => $('dayLogModal').classList.add('hidden'));
-    $('freeAddBtn').addEventListener('click', async () => {
+    on('closeDayLogBtn', 'click', () => $('dayLogModal').classList.add('hidden'));
+    on('freeAddBtn', 'click', async () => {
       const name = $('freeExName').value.trim();
       if (!name) { $('freeExName').focus(); return; }
       const matched = APP_STATE.exercises.find(e => e.name.toLowerCase() === name.toLowerCase());
@@ -200,13 +212,13 @@
       $('freeExName').value = '';
       openDayLogModal(APP_STATE.selectedDay);
     });
-    $('freeExName').addEventListener('keypress', e => {
+    on('freeExName', 'keypress', e => {
       if (e.key === 'Enter') { e.preventDefault(); $('freeAddBtn').click(); }
     });
 
     // Set time modal
-    $('cancelSetTimeBtn').addEventListener('click', () => $('setTimeModal').classList.add('hidden'));
-    $('saveSetTimeBtn').addEventListener('click', async () => {
+    on('cancelSetTimeBtn', 'click', () => $('setTimeModal').classList.add('hidden'));
+    on('saveSetTimeBtn', 'click', async () => {
       const dateStr = $('stDayDate').value;
       const timeVal = $('stTime').value;
       const noteVal = $('stNote').value.trim();
@@ -232,7 +244,7 @@
         $('saveSetTimeBtn').disabled = false;
       }
     });
-    $('clearSetTimeBtn').addEventListener('click', async () => {
+    on('clearSetTimeBtn', 'click', async () => {
       const dateStr = $('stDayDate').value;
       if (!dateStr) return;
       if (!await uiConfirm({ title: 'Clear Class Time', message: 'Clear the time for this day?', confirmText: '🗑️ Clear', danger: true })) return;
@@ -247,48 +259,58 @@
     });
 
     // Month summary modal
-    $('closeMonthSummaryBtn').addEventListener('click', () => $('monthSummaryModal').classList.add('hidden'));
+    on('closeMonthSummaryBtn', 'click', () => $('monthSummaryModal').classList.add('hidden'));
 
     // Progress modal
-    $('cancelProgressBtn').addEventListener('click', () => $('progressModal').classList.add('hidden'));
-    $('saveProgressBtn').addEventListener('click', saveProgress);
-    $('adminAddProgressBtn').addEventListener('click', () => {
-      if (APP_STATE.selectedClientId) openProgressModal(null, APP_STATE.selectedClientId, 'admin');
+    on('cancelProgressBtn', 'click', () => $('progressModal').classList.add('hidden'));
+    on('saveProgressBtn', 'click', saveProgress);
+    // ➕ Add Entry — routed through the guarded opener in js/client-portal.js
+    // (lazy lookup + try/catch, works even if main.js bind() partially failed).
+    const adminAddBtn = $('adminAddProgressBtn');
+    if (adminAddBtn) adminAddBtn.addEventListener('click', () => {
+      if (!APP_STATE.selectedClientId) return;
+      if (typeof window.openProgressModal === 'function') openProgressModal(null, APP_STATE.selectedClientId, 'admin');
     });
-    $('clientAddProgressBtn').addEventListener('click', () => {
-      if (APP_STATE.loggedInClient) openProgressModal(null, APP_STATE.loggedInClient.id, 'client');
+    const clientAddBtn = $('clientAddProgressBtn');
+    if (clientAddBtn) clientAddBtn.addEventListener('click', () => {
+      if (typeof window.tasOpenAddEntry === 'function') window.tasOpenAddEntry();
+      else if (APP_STATE.loggedInClient && typeof window.openProgressModal === 'function') {
+        openProgressModal(null, APP_STATE.loggedInClient.id, 'client');
+      }
     });
 
     // Profile edit modal
-    $('cancelProfileEditBtn').addEventListener('click', () => $('profileEditModal').classList.add('hidden'));
-    $('submitProfileBtn').addEventListener('click', submitProfileEdit);
-    $('clientEditProfileBtn').addEventListener('click', () => {
-      if (!APP_STATE.loggedInClient) return;
-      const p = clientMapGet(APP_STATE.clientProfiles, APP_STATE.loggedInClient.id) || {};
-      $('peHeight').value = p.height_cm || '';
-      $('peGender').value = p.gender || '';
-      $('peBirth').value = p.birth_date || '';
-      $('peGoal').value = p.goal || '';
-      $('peMedical').value = p.medical_notes || '';
-      $('peEmergency').value = p.emergency_contact || '';
-      $('profileEditModal').classList.remove('hidden');
-      clearStatus($('profileEditStatus'));
+    on('cancelProfileEditBtn', 'click', () => $('profileEditModal').classList.add('hidden'));
+    on('submitProfileBtn', 'click', submitProfileEdit);
+    // ✏️ Edit Profile — same guarded routing as above.
+    const clientEditBtn = $('clientEditProfileBtn');
+    if (clientEditBtn) clientEditBtn.addEventListener('click', () => {
+      if (typeof window.tasOpenProfileEdit === 'function') window.tasOpenProfileEdit();
+      else if (APP_STATE.loggedInClient) {
+        const p = clientMapGet(APP_STATE.clientProfiles, APP_STATE.loggedInClient.id) || {};
+        [['peHeight', p.height_cm], ['peGender', p.gender], ['peBirth', p.birth_date],
+         ['peGoal', p.goal], ['peMedical', p.medical_notes], ['peEmergency', p.emergency_contact]]
+          .forEach(([id, v]) => { const el = $(id); if (el) el.value = v == null ? '' : String(v); });
+        if (typeof window.prefillProfileCalcStats === 'function') window.prefillProfileCalcStats(p);
+        $('profileEditModal').classList.remove('hidden');
+        clearStatus($('profileEditStatus'));
+      }
     });
 
     // Wipe modal
-    $('clearAllBtn').addEventListener('click', openWipeModal);
-    $('cancelClearAllBtn').addEventListener('click', () => $('clearAllModal').classList.add('hidden'));
-    $('clearConfirmInput').addEventListener('input', (e) => {
+    on('clearAllBtn', 'click', openWipeModal);
+    on('cancelClearAllBtn', 'click', () => $('clearAllModal').classList.add('hidden'));
+    on('clearConfirmInput', 'input', (e) => {
       $('confirmClearAllBtn').disabled = e.target.value.trim() !== 'DELETE';
     });
-    $('confirmClearAllBtn').addEventListener('click', performWipe);
+    on('confirmClearAllBtn', 'click', performWipe);
 
     // Delete client modal
-    $('cancelDeleteClientBtn').addEventListener('click', () => $('deleteClientModal').classList.add('hidden'));
-    $('deleteConfirmInput').addEventListener('input', (e) => {
+    on('cancelDeleteClientBtn', 'click', () => $('deleteClientModal').classList.add('hidden'));
+    on('deleteConfirmInput', 'input', (e) => {
       $('confirmDeleteClientBtn').disabled = e.target.value.trim() !== 'DELETE';
     });
-    $('confirmDeleteClientBtn').addEventListener('click', confirmDeleteClient);
+    on('confirmDeleteClientBtn', 'click', confirmDeleteClient);
 
     // Client dashboard tabs
     document.querySelectorAll('.tab-btn[data-ctab]').forEach(btn => {
@@ -360,7 +382,8 @@
     document.addEventListener('keydown', (e) => {
       if (e.key !== 'Escape') return;
       document.querySelectorAll('.modal-overlay:not(.hidden)').forEach(m => m.classList.add('hidden'));
-      ['settingsPanel', 'libraryPanel', 'approvalsPanel', 'classTimesPanel'].forEach(id => {
+      ['settingsPanel', 'libraryPanel', 'approvalsPanel', 'classTimesPanel',
+        'reportsPanel', 'requestsPanel'].forEach(id => {
         const el = $(id); if (el) el.classList.add('hidden');
       });
     });
