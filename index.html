@@ -219,6 +219,7 @@
       <button class="tab-btn active" data-ctab="plan">🏋️ My Plan</button>
       <button class="tab-btn" data-ctab="history">📜 History</button>
       <button class="tab-btn" data-ctab="progress">📈 Progress</button>
+      <button class="tab-btn" data-ctab="calculators">🧮 Calculators</button>
       <button class="tab-btn" data-ctab="profile">👤 Profile</button>
     </div>
     <div class="tab-content" id="ctab-plan">
@@ -253,6 +254,12 @@
         </div>
         <div id="clientReportBody"></div>
       </div>
+    </div>
+    <!-- 🧮 CALCULATORS TAB — Fitness Calculator Hub (js/calculators.js)
+         ONE shared input panel at the top; all 15 calculator cards read
+         from it and update live. Content is mounted by calculators.js. -->
+    <div class="tab-content hidden" id="ctab-calculators">
+      <div class="calc-hub-wrap" id="clientCalcHub"></div>
     </div>
     <div class="tab-content hidden" id="ctab-profile">
       <div class="section-card">
@@ -301,6 +308,7 @@
     <div class="tabs-bar admin-workspace-tabs" role="tablist" aria-label="Admin workspace">
       <button class="tab-btn active" data-atab2="home" type="button" role="tab" id="adminTabHomeBtn">🏠 Home</button>
       <button class="tab-btn" data-atab2="clients" type="button" role="tab" id="adminTabClientsBtn">📋 Clients <span id="adminClientsTabCount" class="badge-count">0</span></button>
+      <button class="tab-btn" data-atab2="calculators" type="button" role="tab" id="adminTabCalculatorsBtn">🧮 Calculators</button>
     </div>
 
     <!-- ---------- WORKSPACE 1: HOME — create clients quickly ---------- -->
@@ -611,6 +619,24 @@
       </details>
     </div>
   </div><!-- /adminWorkspaceClients -->
+
+    <!-- ---------- WORKSPACE 3: CALCULATORS — Fitness Calculator Hub ----------
+         Same hub as the client portal, with a client selector on top so the
+         trainer can preview/adjust any client's saved shared inputs. The
+         selected client's values load from fitness_inputs and edits save back
+         to that client (debounced autosave in js/calculators.js). -->
+    <div id="adminWorkspaceCalculators" class="admin-workspace hidden">
+      <div class="calc-client-bar">
+        <div class="input-group" style="flex:1 1 240px;margin:0;">
+          <label for="adminCalcClientSelect">Viewing calculators for</label>
+          <select id="adminCalcClientSelect">
+            <option value="">— My own demo values (not saved) —</option>
+          </select>
+        </div>
+        <span class="calc-client-hint">💾 Changes autosave to the selected client's cloud profile.</span>
+      </div>
+      <div class="calc-hub-wrap" id="adminCalcHub"></div>
+    </div><!-- /adminWorkspaceCalculators -->
   </div>
 
 <!-- MODALS -->
