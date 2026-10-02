@@ -56,7 +56,24 @@ window.performWipe = async function () {
       await wipeAll('progress_reports');
       await wipeAll('client_profiles', 'client_id');
       await wipeAll('client_settings', 'client_id');
+      // BUG FIX: delete clients FIRST, then re-run the child-table wipes.
+      // With Supabase realtime enabled, any client row that still existed when
+      // the child tables were cleared could instantly re-insert its data from
+      // another logged-in device ("data comes back after wipe"). Removing the
+      // parent rows first closes that window.
       await wipeAll('clients');
+      await wipeAll('progress_approvals');
+      await wipeAll('profile_approvals');
+      await wipeAll('daily_times');
+      await wipeAll('progress_entries');
+      await wipeAll('workout_logs');
+      await wipeAll('client_exercises');
+      await wipeAll('sessions');
+      await wipeAll('client_requests');
+      await wipeAll('workout_edit_requests');
+      await wipeAll('progress_reports');
+      await wipeAll('client_profiles', 'client_id');
+      await wipeAll('client_settings', 'client_id');
       await wipeAll('exercises');
 
       // HARDCODED ADMIN CREDENTIALS — never removed by a wipe. The

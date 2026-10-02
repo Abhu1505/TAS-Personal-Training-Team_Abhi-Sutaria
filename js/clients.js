@@ -180,6 +180,12 @@ window.reopenSelectedClient = async function () {
   } catch (err) { showStatus(null, '❌ Failed: ' + err.message, 'error'); }
 };
 
+// Delete a client EVERYWHERE — cloud first, then local caches.
+// BUG FIX: previously only the `clients` row was deleted from Supabase, so all
+// the related rows (settings, profile, progress, sessions, workout logs,
+// daily times, exercises, approvals, requests, reports) stayed in the cloud and
+// "the data came back" after the next sync / refresh / reopen on another
+// device. Now every table that references this client is wiped for good.
 window.confirmDeleteClient = async function () {
   if (!APP_STATE.pendingDeleteClientId) return;
   const btn = $('confirmDeleteClientBtn');
@@ -187,7 +193,37 @@ window.confirmDeleteClient = async function () {
   btn.textContent = '⏳ Deleting...';
   const id = APP_STATE.pendingDeleteClientId;
   try {
-    await APP_STATE.supabaseClient.from('clients').delete().eq('id', id);
+    const sb = APP_STATE.supabaseClient;
+
+    // Resolve the client's login_id badge too — older rows in some tables may
+    // still reference the client by "ALI-9786"-style login id instead of uuid.
+    const gone = APP_STATE.clients.find(x => sameId(x.id, id));
+    const loginId = gone ? String(gone.login_id || '').trim() : '';
+
+    // Cloud delete per table. A missing/renamed table must not abort the rest
+    // of the cascade, so each failure is logged and swallowed.
+    const delBy = async (table, col, val) => {
+      try { await sb.from(table).delete().eq(col, val); }
+      catch (e) { console.warn(`delete client: table ${table} skipped`, e); }
+    };
+    const delFor = async (table, val) => {
+      await delBy(table, 'client_id', val);
+      if (loginId && String(loginId) !== String(val)) await delBy(table, 'client_id', loginId);
+    };
+
+    await delFor('progress_approvals', id);
+    await delFor('profile_approvals', id);
+    await delFor('daily_times', id);
+    await delFor('progress_entries', id);
+    await delFor('workout_logs', id);
+    await delFor('client_exercises', id);
+    await delFor('sessions', id);
+    await delFor('client_requests', id);
+    await delFor('workout_edit_requests', id);
+    await delFor('progress_reports', id);
+    await delFor('client_profiles', id);
+    await delFor('client_settings', id);
+    await delBy('clients', 'id', id);
     // sameId-based filtering/deletion so numeric vs string ids never mismatch
     APP_STATE.clients = APP_STATE.clients.filter(x => !sameId(x.id, id));
     const k = Object.keys(APP_STATE.clientSettings).find(key => sameId(key, id));
