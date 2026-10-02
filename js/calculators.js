@@ -1,10 +1,16 @@
 // ============================================================
-// FITNESS CALCULATOR HUB — 15 calculators, ONE shared input panel
+// FITNESS CALCULATOR HUB — 15 calculators, ONE shared input set
 // ------------------------------------------------------------
-// Core concept: the user enters their details ONCE in the shared
-// inputs grid; every calculator card below reads from that same
-// state and re-renders instantly on any change (real-time).
+// Core concept: the "📌 Shared Inputs — entered once, used by all
+// 15 calculators" now live inside 👤 My Profile (client portal) and
+// are saved to the cloud profile. Every calculator card reads from
+// that same state — nothing is typed inside the Calculators tab.
 // No calculator has its own input fields.
+//
+// Exposed for the Profile tab (js/progress.js):
+//   window.CALC_SHARED_FIELDS      → the 11 field definitions
+//   window.renderCalcSharedInputs()→ builds the shared-inputs panel
+//   window.saveCalcSharedInput(id, clientId) → persists one value
 //
 // Persistence: inputs are saved per client in Supabase table
 //   fitness_inputs (client_id unique + inputs jsonb)
@@ -149,11 +155,15 @@
     renderInputs();
     renderCards();
     // Small badge telling the user whether these values came from their
-    // approved Profile → Calculator Body Stats or from the hub itself.
+    // approved Profile → Shared Inputs or from the saved inputs themselves.
     try {
       const fromProfile = !!(prof && window.profileHasCalcStats(prof));
       document.querySelectorAll('.calc-profile-note').forEach(n => {
-        n.textContent = fromProfile ? '· synced from Profile body stats ✓' : '';
+        n.textContent = fromProfile ? '· synced from client Profile ✓' : '';
+        n.classList.toggle('hidden', !fromProfile);
+      });
+      document.querySelectorAll('#profileSharedNote').forEach(n => {
+        n.textContent = fromProfile ? '· saved to your cloud profile ✓' : '';
         n.classList.toggle('hidden', !fromProfile);
       });
     } catch (e) { }
@@ -265,11 +275,59 @@
     return `<div class="input-group calc-field"><label for="${id}">${esc(label)}</label>${control}</div>`;
   }
 
-  function renderInputs() {
+  // ---------- shared inputs — rendered inside 👤 My Profile ----------
+  // The panel builder is exposed so the Profile tab (js/progress.js) can
+  // mount the exact same "📌 Shared Inputs" grid calculators used before.
+  window.CALC_SHARED_FIELDS = FIELDS;
+
+  window.renderCalcSharedInputs = function () {
     document.querySelectorAll('.calc-shared-inputs').forEach(box => {
-      box.innerHTML = FIELDS
-        .map(f => inputHtml(f[0], f[1], f[2], f[3], current[f[0]])).join('');
+      const scopeAttr = box.dataset.calcscope || '';
+      box.innerHTML = FIELDS.map(f => {
+        let html = inputHtml(f[0], f[1], f[2], f[3], current[f[0]]);
+        if (scopeAttr) {
+          html = html.replace('class="input-group calc-field"',
+            `class="input-group calc-field" data-calcscope="${esc(scopeAttr)}"`);
+        }
+        return html;
+      }).join('');
     });
+  };
+
+  // Persist ONE shared input straight from the Profile fields (used when
+  // the client edits their profile but the hub state hasn't been loaded
+  // for them yet, e.g. right after login on a fresh page).
+  window.saveCalcSharedInput = async function (id, clientId) {
+    if (!clientId || clientId === 'guest') return;
+    const el = $(id);
+    if (!el) return;
+    const def = FIELDS.find(f => 'fitIn-' + f[0] === id);
+    if (!def) return;
+    let existing = null;
+    try {
+      const raw = localStorage.getItem(lsKey(clientId));
+      if (raw) existing = JSON.parse(raw);
+    } catch (e) { }
+    const merged = Object.assign({}, DEFAULTS, existing || {});
+    merged[def[0]] = Array.isArray(def[2]) ? el.value : num(el.value);
+    try { localStorage.setItem(lsKey(clientId), JSON.stringify(merged)); } catch (e) { }
+    try {
+      const sb = APP_STATE.supabaseClient;
+      if (sb) {
+        await sb.from('fitness_inputs').upsert(
+          { client_id: String(clientId), inputs: merged, updated_at: new Date().toISOString() },
+          { onConflict: 'client_id' });
+      }
+    } catch (e) { /* table missing → local copy still saved */ }
+    if (String(scopeId) === String(clientId)) {
+      current = merged;
+      window.renderCalcSharedInputs();
+      renderCards();
+    }
+  };
+
+  function renderInputs() {
+    window.renderCalcSharedInputs();
   }
 
   // "↺ Reset" restores the spec defaults for the currently loaded person.
@@ -281,9 +339,13 @@
   };
 
   // Single delegated listener: ANY shared input change updates ALL cards live.
+  // The inputs themselves now live in 👤 My Profile (client) / the trainer's
+  // Calculators workspace — the scope attribute on each field decides whether
+  // a keystroke is adopted into the calculator state.
   function onInput(e) {
     const el = e.target.closest ? e.target.closest('[data-fitkey]') : null;
     if (!el) return;
+    if (el.dataset.calcscope === 'client' && !window.APP_STATE?.loggedInClient) return;
     const key = el.dataset.fitkey;
     const def = FIELDS.find(f => f[0] === key);
     if (!def) return;
@@ -596,20 +658,28 @@
 
   // ---------- mount helper (used by client tab + admin panel) ----------
   function mountHub(container, scope) {
+    const isClient = scope !== 'admin';
     container.innerHTML = `
       <div class="calc-sticky-head">
         <div class="calc-app-title">🧮 Fitness Calculator Hub
           <span class="live-chip"><span class="live-dot"></span> Live Calculations</span>
         </div>
-        <div class="calc-hint">Enter your details <strong>once</strong> — all 15 calculators update instantly. Nothing is sent anywhere until it saves to your cloud profile.</div>
+        <div class="calc-hint">${isClient
+          ? 'All 15 calculators read your details from <strong>👤 My Profile → 📌 Shared Inputs</strong>. Edit them there and this page updates instantly.'
+          : 'Enter the client\'s details <strong>once</strong> — all 15 calculators update instantly. Nothing is sent anywhere until it saves to their cloud profile.'}</div>
       </div>
+      ${isClient ? `
+      <div class="calc-profile-banner">
+        👤 Your <strong>Shared Inputs</strong> now live in <strong>My Profile</strong> — enter them once there and all 15 calculators use them automatically.
+        <button type="button" class="calc-goto-profile-btn" id="calcGoProfileBtn${scope === 'admin' ? 'A' : 'C'}">Open My Profile →</button>
+      </div>` : `
       <div class="calc-shared-panel">
         <div class="calc-shared-row">
           <div class="calc-shared-label">📌 Shared Inputs — entered once, used by all 15 calculators <span class="calc-profile-note" id="calcProfileNote${scope === 'admin' ? 'A' : 'C'}"></span></div>
           <button type="button" class="calc-reset-btn" onclick="resetFitnessInputs()" title="Restore default values">↺ Reset</button>
         </div>
-        <div class="calc-shared-inputs"></div>
-      </div>
+        <div class="calc-shared-inputs" data-calcscope="admin"></div>
+      </div>`}
       <div class="calc-tabs" role="tablist" aria-label="Calculator categories">
         <button class="calc-tab-btn active" data-calctab="all" type="button">🌐 All</button>
         <button class="calc-tab-btn" data-calctab="body" type="button">🧍 Body</button>
@@ -619,18 +689,27 @@
       </div>
       <div class="calc-grid" data-calcscope="${scope}"></div>`;
     bindTabs(container);
+    const goBtn = container.querySelector('.calc-goto-profile-btn');
+    if (goBtn) goBtn.addEventListener('click', () => {
+      const b = document.querySelector('.tab-btn[data-ctab="profile"]');
+      if (b) b.click();
+      if (typeof window.showToast === 'function') {
+        window.showToast('👤 Edit your Shared Inputs in My Profile — the calculators update live.', 'info');
+      }
+    });
   }
 
   // ---------- profile-edit prefill (✏️ Edit Profile modal) ----------
-  // Fills the "Calculator Body Stats" section of the client's profile-edit
-  // modal. Priority: approved fit_* profile columns → the hub state that is
-  // currently loaded for this client → spec defaults.
+  // Fills the "📌 Shared Inputs" section of the client's 👤 My Profile tab
+  // and the matching section of the profile-edit modal. Priority: approved
+  // fit_* profile columns → the hub state that is currently loaded for this
+  // client → spec defaults.
   const PROFILE_STAT_INPUTS = {
     weight: 'pcWeight', height: 'pcHeightCm', age: 'pcAge', gender: 'pcGenderSel',
     activity: 'pcActivity', goal: 'pcGoalSel', waist: 'pcWaist', neck: 'pcNeck',
     hip: 'pcHip', bench: 'pcBench', bodyfat: 'pcBodyfat'
   };
-  window.prefillProfileCalcStats = function (profileRow) {
+  window.prefillProfileCalcStats = function (profileRow, targetIds) {
     const stats = Object.assign({}, DEFAULTS);
     if (scopeId && String(scopeId) === String((APP_STATE.loggedInClient || {}).id)) {
       Object.assign(stats, current);                       // live hub values
@@ -638,7 +717,8 @@
     if (profileRow && window.profileHasCalcStats(profileRow)) {
       Object.assign(stats, window.profileCalcStats(profileRow));
     }
-    Object.entries(PROFILE_STAT_INPUTS).forEach(([key, id]) => {
+    Object.entries(PROFILE_STAT_INPUTS).forEach(([key, fallbackId]) => {
+      const id = (targetIds && targetIds[key]) || fallbackId;
       const el = $(id);
       if (!el) return;
       const v = stats[key];
@@ -649,6 +729,43 @@
       }
     });
   };
+
+  // ---------- 👤 My Profile → 📌 Shared Inputs (live editing) ----------
+  // The shared inputs render inside the Profile tab itself; typing a value
+  // there updates all 15 calculators instantly (via the global delegated
+  // listener in calculators.js) and autosaves to fitness_inputs + localStorage
+  // — the same storage the Calculators hub uses.
+  const PROFILE_SHARED_IDS = {
+    weight: 'fitIn-weight', height: 'fitIn-height', age: 'fitIn-age',
+    gender: 'fitIn-gender', activity: 'fitIn-activity', goal: 'fitIn-goal',
+    waist: 'fitIn-waist', neck: 'fitIn-neck', hip: 'fitIn-hip',
+    bench: 'fitIn-bench', bodyfat: 'fitIn-bodyfat'
+  };
+  let profileSharedBound = false;
+  function bindProfileSharedInputs() {
+    if (profileSharedBound) return;
+    profileSharedBound = true;
+    const saveAll = () => {
+      const c = (window.APP_STATE || {}).loggedInClient;
+      if (!c) return;
+      Object.values(PROFILE_SHARED_IDS).forEach(id => {
+        if (typeof window.saveCalcSharedInput === 'function') {
+          window.saveCalcSharedInput(id, c.id).catch(() => { });
+        }
+      });
+    };
+    document.addEventListener('change', (e) => {
+      const el = e.target.closest ? e.target.closest('#profileSharedInputs [data-fitkey]') : null;
+      if (!el) return;
+      if (el.tagName === 'SELECT') saveAll();
+    });
+    document.addEventListener('blur', (e) => {
+      const el = e.target.closest ? e.target.closest('#profileSharedInputs input[data-fitkey]') : null;
+      if (!el) return;
+      saveAll();
+    }, true);
+  }
+  bindProfileSharedInputs();
 
   window.mountCalcHub = mountHub;
 
