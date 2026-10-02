@@ -138,29 +138,73 @@
   // ---------- cloud/local persistence ----------
   function lsKey(id) { return LS_PREFIX + String(id); }
 
+  // 📌 APPROVAL GATE — one-time purge of LEGACY draft rows. Older builds
+  // autosaved every keystroke from the Profile form into fitness_inputs /
+  // localStorage WITHOUT approval. Those unapproved drafts must never show
+  // up in the calculators, so on first load we delete any fitness_inputs row
+  // whose values don't match the client's APPROVED profile (fit_* columns).
+  // Going forward nothing is written to fitness_inputs except by
+  // syncFitnessInputsFromProfile() right after a trainer approves.
+  const DRAFT_PURGE_FLAG = 'tas_fit_drafts_purged_v1';
+  async function purgeUnapprovedDraftRows(clientId) {
+    const S = window.APP_STATE || {};
+    if (!S.supabaseClient) return;
+    let perClientDone = false;
+    try {
+      perClientDone = !!localStorage.getItem(DRAFT_PURGE_FLAG + ':' + String(clientId));
+    } catch (e) { }
+    if (perClientDone) return;
+    let p = null;
+    try {
+      const { data } = await S.supabaseClient.from('client_profiles')
+        .select('*').eq('client_id', String(clientId)).maybeSingle();
+      p = data || null;
+    } catch (e) { return; }               // table/columns missing → nothing to compare
+    const approved = (p && window.profileHasCalcStats(p)) ? window.profileCalcStats(p) : {};
+    try {
+      const { data: row } = await S.supabaseClient.from('fitness_inputs')
+        .select('id, inputs').eq('client_id', String(clientId)).maybeSingle();
+      if (row) {
+        const ins = row.inputs || {};
+        const numericKeys = ['weight', 'height', 'age', 'waist', 'neck', 'hip', 'bench', 'bodyfat'];
+        const differs = numericKeys.some(k => {
+          const a = parseFloat(approved[k]), i = parseFloat(ins[k]);
+          if (!Number.isFinite(i)) return false;       // blank draft entry → harmless
+          return !Number.isFinite(a) || Math.abs(a - i) > 0.001;
+        });
+        if (differs) {
+          await S.supabaseClient.from('fitness_inputs').delete().eq('id', row.id);
+        } else if (!differs && Object.keys(approved).length) {
+          // Row matches the approved profile → keep it as the synced cache.
+        }
+      }
+    } catch (e) { /* table missing → nothing to purge */ }
+    try { localStorage.setItem(DRAFT_PURGE_FLAG + ':' + String(clientId), '1'); } catch (e) { }
+  }
+
   window.loadFitnessInputsFor = async function (clientId) {
     scopeId = clientId || 'guest';
     let loaded = null;
     let prof = null;
     if (clientId && clientId !== 'guest') {
-      try {
-        const sb = APP_STATE.supabaseClient;
-        if (sb) {
-          const { data, error } = await sb.from('fitness_inputs')
-            .select('inputs').eq('client_id', clientId).maybeSingle();
-          if (!error && data && data.inputs) loaded = data.inputs;
-        }
-      } catch (e) { /* table missing / offline → fall back to localStorage */ }
-      if (!loaded) {
-        try {
-          const raw = localStorage.getItem(lsKey(clientId));
-          if (raw) loaded = JSON.parse(raw);
-        } catch (e) { }
-      }
-      // Approved profile body stats fill any field the hub has never saved yet.
-      const merged = await mergeProfileStats(clientId, loaded);
+      // 📌 APPROVED-ONLY: the hub never adopts unapproved drafts from
+      // fitness_inputs or localStorage. The single source of truth for a
+      // client's calculator values is their APPROVED profile (client_profiles
+      // fit_* columns, written by js/approvals.js when the trainer approves).
+      // Legacy fitness_inputs rows that contain UNAPPROVED draft values are
+      // purged below so stale numbers can never "come back"; approved values
+      // are re-synced into that table by syncFitnessInputsFromProfile().
+      try { await purgeUnapprovedDraftRows(clientId); } catch (e) { /* offline */ }
+      // Approved profile body stats are the ONLY values loaded for a client.
+      const merged = await mergeProfileStats(clientId, {});
       loaded = merged.inputs;
       prof = merged.profile;
+      // Keep the local cache in step with the approved values (offline view).
+      if (prof && window.profileHasCalcStats(prof)) {
+        try { localStorage.setItem(lsKey(clientId), JSON.stringify(loaded || {})); } catch (e) { }
+      } else {
+        try { localStorage.removeItem(lsKey(clientId)); } catch (e) { }
+      }
     }
     current = Object.assign({}, DEFAULTS, loaded || {});
     renderInputs();
@@ -240,22 +284,12 @@
     if (!p) p = (typeof clientMapGet === 'function' && clientMapGet(APP_STATE.clientProfiles, clientId)) || null;
     if (!p || !window.profileHasCalcStats(p)) return;
     const stats = window.profileCalcStats(p);
-    let existing = null;
-    try {
-      const sb = APP_STATE.supabaseClient;
-      if (sb) {
-        const { data } = await sb.from('fitness_inputs')
-          .select('inputs').eq('client_id', String(clientId)).maybeSingle();
-        if (data && data.inputs) existing = data.inputs;
-      }
-    } catch (e) { }
-    if (!existing) {
-      try {
-        const raw = localStorage.getItem(lsKey(String(clientId)));
-        if (raw) existing = JSON.parse(raw);
-      } catch (e) { }
-    }
-    const merged = Object.assign({}, DEFAULTS, existing || {}, stats);
+    // 📌 APPROVED VALUES WIN: the sync OVERWRITES (not merges) the numeric
+    // body stats so unapproved draft leftovers from older builds can never
+    // survive in fitness_inputs / localStorage. Text fields fall back to the
+    // approved profile too; anything missing reverts to the empty default.
+    let existing = null;   // legacy drafts are intentionally NOT adopted
+    const merged = Object.assign({}, DEFAULTS, stats);
     try { localStorage.setItem(lsKey(String(clientId)), JSON.stringify(merged)); } catch (e) { }
     try {
       const sb = APP_STATE.supabaseClient;
@@ -775,43 +809,13 @@
     });
   };
 
-  // ---------- 👤 My Profile → 📌 Shared Inputs (live editing) ----------
-  // The shared inputs render inside the Profile tab itself; typing a value
-  // there updates all 15 calculators instantly (via the global delegated
-  // listener in calculators.js) and autosaves to fitness_inputs + localStorage
-  // — the same storage the Calculators hub uses.
-  const PROFILE_SHARED_IDS = {
-    weight: 'fitIn-weight', height: 'fitIn-height', age: 'fitIn-age',
-    gender: 'fitIn-gender', activity: 'fitIn-activity', goal: 'fitIn-goal',
-    waist: 'fitIn-waist', neck: 'fitIn-neck', hip: 'fitIn-hip',
-    bench: 'fitIn-bench', bodyfat: 'fitIn-bodyfat'
-  };
-  let profileSharedBound = false;
-  function bindProfileSharedInputs() {
-    if (profileSharedBound) return;
-    profileSharedBound = true;
-    const saveAll = () => {
-      const c = (window.APP_STATE || {}).loggedInClient;
-      if (!c) return;
-      Object.values(PROFILE_SHARED_IDS).forEach(id => {
-        if (typeof window.saveCalcSharedInput === 'function') {
-          window.saveCalcSharedInput(id, c.id).catch(() => { });
-        }
-      });
-    };
-    document.addEventListener('change', (e) => {
-      const el = e.target.closest ? e.target.closest('#profileSharedInputs [data-fitkey]') : null;
-      if (!el) return;
-      if (el.tagName === 'SELECT') saveAll();
-    });
-    document.addEventListener('blur', (e) => {
-      const el = e.target.closest ? e.target.closest('#profileSharedInputs input[data-fitkey]') : null;
-      if (!el) return;
-      saveAll();
-    }, true);
-  }
-  bindProfileSharedInputs();
-
+  // ---------- 👤 My Profile → 📌 Shared Inputs ----------
+  // Typing in the Profile form does NOT autosave anywhere any more: the
+  // values reach fitness_inputs / the calculator hub ONLY through the
+  // approval flow (client submits → trainer approves → approvals.js calls
+  // syncFitnessInputsFromProfile()). The live delegated listener still
+  // previews the cards while typing, but nothing is persisted until the
+  // client presses "📩 Save to Profile" and the trainer approves.
   window.mountCalcHub = mountHub;
 
   // ---------- admin client selector (shared inputs sync across both hubs) --
