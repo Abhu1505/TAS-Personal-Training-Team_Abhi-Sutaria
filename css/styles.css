@@ -76,7 +76,7 @@ input,select,textarea,button{font-family:inherit;}
 
 .login-card{position:relative;padding:1.5rem 1.5rem 1.4rem;border-top:5px solid var(--steel-600);transition:border-color 0.3s;}
 /* compact login card: slightly tighter card padding (content untouched) */
-.login-card{padding:1.2rem 1.4rem 1.1rem;}
+.login-card{padding:1rem 1.3rem 0.95rem;}
 .login-card.admin-mode{border-top-color:var(--brand-700);}
 
 /* ---- Admin contact block on the login card (email / Instagram / WhatsApp) ---- */
@@ -110,9 +110,9 @@ input,select,textarea,button{font-family:inherit;}
    starts flush with the card edge. */
 /* "make the login panel area compact": tightened the vertical rhythm inside
    the login card only — no text, inputs or buttons were changed. */
-.login-card .login-brand-row{display:flex;align-items:center;gap:1rem;margin:0 0 0.6rem;padding-left:0;}
+.login-card .login-brand-row{display:flex;align-items:center;gap:1rem;margin:0 0 0.4rem;padding-left:0;}
 /* text column (wordmark + tagline) fills the remaining width to the right of the photo */
-.login-brand-text{flex:1 1 auto;display:flex;flex-direction:column;gap:0.4rem;min-width:0;}
+.login-brand-text{flex:1 1 auto;display:flex;flex-direction:column;gap:0.25rem;min-width:0;}
 /* Photo: ENLARGED per request (was 160px → now 200px on desktop), placed
    BEFORE the text so the logo leads the lockup. Clean square image. */
 .login-brand-row .logo-photo-wrap{width:200px;height:200px;display:flex;align-items:center;justify-content:center;overflow:hidden;border-radius:0;background:transparent;border:none;outline:none;flex:0 0 auto;margin-top:0;box-shadow:none;}
@@ -131,23 +131,23 @@ input,select,textarea,button{font-family:inherit;}
 
 h2{font-size:clamp(1.4rem,3.5vw,1.85rem);font-weight:800;margin-bottom:0.3rem;color:var(--ink);line-height:1.2;letter-spacing:-0.02em;}
 .subhead{color:var(--ink-soft);font-size:0.88rem;margin-bottom:1.2rem;border-left:3px solid var(--steel-600);padding-left:0.8rem;line-height:1.5;}
-/* compact login card: subhead gap 1.2rem → 0.7rem */
-.login-card .subhead{margin-bottom:0.7rem;}
+/* compact login card: subhead gap 1.2rem → 0.45rem */
+.login-card .subhead{margin-bottom:0.45rem;}
 .login-card.admin-mode .subhead{border-left-color:var(--brand-700);}
 
 .cloud-status{display:flex;align-items:center;gap:0.5rem;padding:0.5rem 0.9rem;border-radius:var(--r-pill);font-size:0.75rem;font-weight:700;margin-bottom:1rem;background:var(--warning-bg);color:var(--warning);border:1.5px solid var(--warning-border);width:fit-content;}
 .cloud-status.online{background:var(--success-bg);color:var(--success);border-color:var(--success-border);}
 .cloud-status .dot{width:9px;height:9px;border-radius:50%;background:#ff9800;flex-shrink:0;}
 .cloud-status.online .dot{background:#4caf50;animation:pulse 2s infinite;}
-/* compact login card: cloud status gap 1rem → 0.6rem */
-.login-card .cloud-status{margin-bottom:0.6rem;}
+/* compact login card: cloud status gap 1rem → 0.45rem */
+.login-card .cloud-status{margin-bottom:0.45rem;padding:0.35rem 0.8rem;}
 @keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.4;}}
 
 .badge{display:inline-block;background:var(--steel-100);color:var(--steel-800);font-size:0.7rem;font-weight:700;padding:0.25rem 0.9rem;border-radius:var(--r-pill);text-transform:uppercase;margin-bottom:0.8rem;letter-spacing:0.6px;}
 
 .input-group{margin-bottom:1rem;}
-/* compact login card: field gaps 1rem → 0.65rem */
-.login-card .input-group{margin-bottom:0.65rem;}
+/* compact login card: field gaps 1rem → 0.5rem */
+.login-card .input-group{margin-bottom:0.5rem;}
 label{display:block;font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;color:var(--steel-700);margin-bottom:0.35rem;}
 input,select,textarea{width:100%;padding:0.75rem 1rem;font-size:0.95rem;background:var(--surface-alt);border:1.5px solid var(--line);border-radius:var(--r-md);outline:none;color:var(--ink);font-weight:500;-webkit-appearance:none;appearance:none;min-height:44px;transition:border-color var(--dur) var(--ease),box-shadow var(--dur) var(--ease),background var(--dur) var(--ease);}
 input::placeholder{color:#9db2c2;}
@@ -444,7 +444,7 @@ button:disabled{opacity:0.55;cursor:not-allowed;}
 @media (max-width:700px){
   body{padding:0.7rem 0.5rem;font-size:14px;}
   .card{padding:1.1rem;border-radius:var(--r-lg);}
-  .login-card{padding:1.25rem 1.1rem 1.15rem;}
+  .login-card{padding:0.9rem 0.95rem 0.85rem;}
   h2{font-size:1.35rem;}
   .subhead{font-size:0.82rem;margin-bottom:1rem;}
   input,select,textarea{padding:0.7rem 0.9rem;font-size:0.9rem;min-height:44px;}
@@ -469,8 +469,9 @@ button:disabled{opacity:0.55;cursor:not-allowed;}
   .contact-picker-row .input-group{flex:1 1 100%;}
   .contact-picker-row .btn-contact{width:100%;}
   /* Compact brand header on phones — one row (photo logo FIRST/left, then
-     wordmark + tagline + badge), enlarged photo, form stays above the fold */
-  .login-brand-row{gap:0.8rem;margin-bottom:0.95rem;padding-left:0;}
+     wordmark + tagline + badge), enlarged photo, form stays above the fold.
+     LOGO SIZE UNTOUCHED (still 190px) — only the vertical gaps tightened. */
+  .login-brand-row{gap:0.8rem;margin-bottom:0.45rem;padding-left:0;}
   .login-brand-row .logo-photo-wrap{width:190px;height:190px;border-radius:0;margin-top:0;box-shadow:none;}
   .login-brand-row .logo-photo-wrap img{border-radius:0;}
   .login-brand-text .logo-lockup{width:min(200px,100%);}
@@ -487,7 +488,7 @@ button:disabled{opacity:0.55;cursor:not-allowed;}
   /* Very narrow phones: keep the photo FIRST (left) and the text block
      beside it — shrink both a touch instead of stacking, so the logo still
      leads the lockup and the form stays close to the top */
-  .login-brand-row{justify-content:flex-start;flex-wrap:nowrap;padding-left:0;margin-bottom:0.85rem;text-align:left;gap:0.6rem;}
+  .login-brand-row{justify-content:flex-start;flex-wrap:nowrap;padding-left:0;margin-bottom:0.4rem;text-align:left;gap:0.6rem;}
   .login-brand-row .logo-photo-wrap{width:140px;height:140px;border-radius:0;margin-top:0;box-shadow:none;flex-basis:140px;}
   .login-brand-row .logo-photo-wrap img{border-radius:0;}
   .login-brand-text{align-items:flex-start;gap:0.3rem;flex:1 1 0;}
@@ -1273,6 +1274,21 @@ img{max-width:100%;}
     padding-left:calc(0.6rem + var(--safe-l));
     padding-right:calc(0.6rem + var(--safe-r));
   }
+}
+
+/* ============================================================
+   📲 STANDALONE APP FIX v10 — "top of the screen not readable in
+   the installed app". In the installed app (Android WebView /
+   iOS standalone) the page sits under the status bar / notch and
+   the keyboard can push the view down, clipping the brand row.
+   Now the app adds extra top clearance (respecting the device
+   safe-area inset) AND auto-scrolls the login card to the very
+   top on load, so nothing above the fold is ever cut off.
+   Nothing else changes — same content, same logo sizes.
+   ============================================================ */
+@media (display-mode:standalone){
+  html.device-phone body{padding-top:calc(0.9rem + var(--safe-t));}
+  #loginCard{scroll-margin-top:calc(0.4rem + var(--safe-t));}
 }
 
 /* ---- Install helper chip (works everywhere, incl. iOS Safari) ---- */

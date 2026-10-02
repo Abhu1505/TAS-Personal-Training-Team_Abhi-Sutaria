@@ -156,4 +156,28 @@
       showInstallChip(true);
     }
   }
+
+  /* ---- Installed-app top-clipping fix ----
+     In the installed PWA/WebView app the page can open slightly scrolled
+     down (status bar / notch overlap + keyboard restore), so the top of the
+     login card — brand logo row and heading — was unreadable. Whenever the
+     login screen is showing in standalone mode, snap the view back to the
+     very top so everything above the fold stays visible. Browser tabs are
+     untouched. No sizes or content changed. */
+  function keepAppTopVisible() {
+    if (!inStandalone()) return;
+    const login = document.getElementById('loginCard');
+    if (login && !login.classList.contains('hidden')) {
+      window.scrollTo(0, 0);
+      if (document.scrollingElement) document.scrollingElement.scrollTop = 0;
+    }
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', keepAppTopVisible);
+  } else {
+    keepAppTopVisible();
+  }
+  window.addEventListener('load', keepAppTopVisible);
+  setTimeout(keepAppTopVisible, 350);   // after Drive photo / theme settle
+  setInterval(keepAppTopVisible, 1500); // cheap no-op unless logged-out in app
 })();
