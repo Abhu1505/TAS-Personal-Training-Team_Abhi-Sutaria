@@ -75,6 +75,8 @@ input,select,textarea,button{font-family:inherit;}
 .card{background:var(--surface);border-radius:var(--r-xl);box-shadow:var(--shadow-lg);padding:1.6rem;border:1px solid var(--line-soft);width:100%;transition:box-shadow var(--dur) var(--ease);}
 
 .login-card{position:relative;padding:1.5rem 1.5rem 1.4rem;border-top:5px solid var(--steel-600);transition:border-color 0.3s;}
+/* compact login card: slightly tighter card padding (content untouched) */
+.login-card{padding:1.2rem 1.4rem 1.1rem;}
 .login-card.admin-mode{border-top-color:var(--brand-700);}
 
 /* ---- Admin contact block on the login card (email / Instagram / WhatsApp) ---- */
@@ -106,7 +108,9 @@ input,select,textarea,button{font-family:inherit;}
 /* The manual theme toggle button was removed (theme is 100% auto by
    sunrise/sunset), so the brand row needs no left padding — the photo
    starts flush with the card edge. */
-.login-brand-row{display:flex;align-items:center;gap:1rem;margin:0 0 1.15rem;padding-left:0;}
+/* "make the login panel area compact": tightened the vertical rhythm inside
+   the login card only — no text, inputs or buttons were changed. */
+.login-card .login-brand-row{display:flex;align-items:center;gap:1rem;margin:0 0 0.6rem;padding-left:0;}
 /* text column (wordmark + tagline) fills the remaining width to the right of the photo */
 .login-brand-text{flex:1 1 auto;display:flex;flex-direction:column;gap:0.4rem;min-width:0;}
 /* Photo: ENLARGED per request (was 160px → now 200px on desktop), placed
@@ -122,20 +126,28 @@ input,select,textarea,button{font-family:inherit;}
 .login-head-top{display:flex;align-items:baseline;gap:0.6rem;flex-wrap:wrap;margin-bottom:0.15rem;}
 .login-head-top h2{margin-bottom:0;}
 .login-head-top .badge{width:fit-content;margin-bottom:0;position:relative;top:-0.15rem;}
+/* compact login card: heading sits tight under the brand row */
+.login-card .login-head{margin-top:0;}
 
 h2{font-size:clamp(1.4rem,3.5vw,1.85rem);font-weight:800;margin-bottom:0.3rem;color:var(--ink);line-height:1.2;letter-spacing:-0.02em;}
 .subhead{color:var(--ink-soft);font-size:0.88rem;margin-bottom:1.2rem;border-left:3px solid var(--steel-600);padding-left:0.8rem;line-height:1.5;}
+/* compact login card: subhead gap 1.2rem → 0.7rem */
+.login-card .subhead{margin-bottom:0.7rem;}
 .login-card.admin-mode .subhead{border-left-color:var(--brand-700);}
 
 .cloud-status{display:flex;align-items:center;gap:0.5rem;padding:0.5rem 0.9rem;border-radius:var(--r-pill);font-size:0.75rem;font-weight:700;margin-bottom:1rem;background:var(--warning-bg);color:var(--warning);border:1.5px solid var(--warning-border);width:fit-content;}
 .cloud-status.online{background:var(--success-bg);color:var(--success);border-color:var(--success-border);}
 .cloud-status .dot{width:9px;height:9px;border-radius:50%;background:#ff9800;flex-shrink:0;}
 .cloud-status.online .dot{background:#4caf50;animation:pulse 2s infinite;}
+/* compact login card: cloud status gap 1rem → 0.6rem */
+.login-card .cloud-status{margin-bottom:0.6rem;}
 @keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.4;}}
 
 .badge{display:inline-block;background:var(--steel-100);color:var(--steel-800);font-size:0.7rem;font-weight:700;padding:0.25rem 0.9rem;border-radius:var(--r-pill);text-transform:uppercase;margin-bottom:0.8rem;letter-spacing:0.6px;}
 
 .input-group{margin-bottom:1rem;}
+/* compact login card: field gaps 1rem → 0.65rem */
+.login-card .input-group{margin-bottom:0.65rem;}
 label{display:block;font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;color:var(--steel-700);margin-bottom:0.35rem;}
 input,select,textarea{width:100%;padding:0.75rem 1rem;font-size:0.95rem;background:var(--surface-alt);border:1.5px solid var(--line);border-radius:var(--r-md);outline:none;color:var(--ink);font-weight:500;-webkit-appearance:none;appearance:none;min-height:44px;transition:border-color var(--dur) var(--ease),box-shadow var(--dur) var(--ease),background var(--dur) var(--ease);}
 input::placeholder{color:#9db2c2;}

@@ -14,7 +14,7 @@
    ============================================================ */
 'use strict';
 
-const VERSION = 'tas-pwa-v17';
+const VERSION = 'tas-pwa-v18';
 const SHELL_CACHE   = VERSION + '-shell';
 const RUNTIME_CACHE = VERSION + '-runtime';
 
