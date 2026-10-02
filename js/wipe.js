@@ -54,6 +54,8 @@ window.performWipe = async function () {
       await wipeAll('client_requests');
       await wipeAll('workout_edit_requests');
       await wipeAll('progress_reports');
+      // 🧮 Calculator hub saved inputs (sql/fitness_calculator.sql).
+      try { await wipeAll('fitness_inputs', 'client_id'); } catch (e) { console.warn('wipe: fitness_inputs skipped', e); }
       await wipeAll('client_profiles', 'client_id');
       await wipeAll('client_settings', 'client_id');
       // BUG FIX: delete clients FIRST, then re-run the child-table wipes.
@@ -72,6 +74,8 @@ window.performWipe = async function () {
       await wipeAll('client_requests');
       await wipeAll('workout_edit_requests');
       await wipeAll('progress_reports');
+      // 🧮 Calculator hub saved inputs (sql/fitness_calculator.sql).
+      try { await wipeAll('fitness_inputs', 'client_id'); } catch (e) { console.warn('wipe: fitness_inputs skipped', e); }
       await wipeAll('client_profiles', 'client_id');
       await wipeAll('client_settings', 'client_id');
       await wipeAll('exercises');

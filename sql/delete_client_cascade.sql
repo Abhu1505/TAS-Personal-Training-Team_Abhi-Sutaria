@@ -29,6 +29,7 @@ ghosts as (
     union all select client_id from public.progress_reports
     union all select client_id from public.client_profiles
     union all select client_id from public.client_settings
+    union all select client_id from public.fitness_inputs
   ) x
   where x.client_id is not null
     and lower(x.client_id) <> all (array(select lower(k) from alive))
@@ -55,6 +56,7 @@ ghosts as (
     union all select client_id from public.progress_reports
     union all select client_id from public.client_profiles
     union all select client_id from public.client_settings
+    union all select client_id from public.fitness_inputs
   ) x
   where x.client_id is not null
     and lower(x.client_id) <> all (array(select lower(k) from alive))
@@ -81,6 +83,7 @@ ghosts as (
     union all select client_id from public.progress_reports
     union all select client_id from public.client_profiles
     union all select client_id from public.client_settings
+    union all select client_id from public.fitness_inputs
   ) x
   where x.client_id is not null
     and lower(x.client_id) <> all (array(select lower(k) from alive))
@@ -107,6 +110,7 @@ ghosts as (
     union all select client_id from public.progress_reports
     union all select client_id from public.client_profiles
     union all select client_id from public.client_settings
+    union all select client_id from public.fitness_inputs
   ) x
   where x.client_id is not null
     and lower(x.client_id) <> all (array(select lower(k) from alive))
@@ -133,6 +137,7 @@ ghosts as (
     union all select client_id from public.progress_reports
     union all select client_id from public.client_profiles
     union all select client_id from public.client_settings
+    union all select client_id from public.fitness_inputs
   ) x
   where x.client_id is not null
     and lower(x.client_id) <> all (array(select lower(k) from alive))
@@ -159,6 +164,7 @@ ghosts as (
     union all select client_id from public.progress_reports
     union all select client_id from public.client_profiles
     union all select client_id from public.client_settings
+    union all select client_id from public.fitness_inputs
   ) x
   where x.client_id is not null
     and lower(x.client_id) <> all (array(select lower(k) from alive))
@@ -185,6 +191,7 @@ ghosts as (
     union all select client_id from public.progress_reports
     union all select client_id from public.client_profiles
     union all select client_id from public.client_settings
+    union all select client_id from public.fitness_inputs
   ) x
   where x.client_id is not null
     and lower(x.client_id) <> all (array(select lower(k) from alive))
@@ -211,6 +218,7 @@ ghosts as (
     union all select client_id from public.progress_reports
     union all select client_id from public.client_profiles
     union all select client_id from public.client_settings
+    union all select client_id from public.fitness_inputs
   ) x
   where x.client_id is not null
     and lower(x.client_id) <> all (array(select lower(k) from alive))
@@ -237,6 +245,7 @@ ghosts as (
     union all select client_id from public.progress_reports
     union all select client_id from public.client_profiles
     union all select client_id from public.client_settings
+    union all select client_id from public.fitness_inputs
   ) x
   where x.client_id is not null
     and lower(x.client_id) <> all (array(select lower(k) from alive))
@@ -263,6 +272,7 @@ ghosts as (
     union all select client_id from public.progress_reports
     union all select client_id from public.client_profiles
     union all select client_id from public.client_settings
+    union all select client_id from public.fitness_inputs
   ) x
   where x.client_id is not null
     and lower(x.client_id) <> all (array(select lower(k) from alive))
@@ -289,6 +299,7 @@ ghosts as (
     union all select client_id from public.progress_reports
     union all select client_id from public.client_profiles
     union all select client_id from public.client_settings
+    union all select client_id from public.fitness_inputs
   ) x
   where x.client_id is not null
     and lower(x.client_id) <> all (array(select lower(k) from alive))
@@ -315,6 +326,7 @@ ghosts as (
     union all select client_id from public.progress_reports
     union all select client_id from public.client_profiles
     union all select client_id from public.client_settings
+    union all select client_id from public.fitness_inputs
   ) x
   where x.client_id is not null
     and lower(x.client_id) <> all (array(select lower(k) from alive))

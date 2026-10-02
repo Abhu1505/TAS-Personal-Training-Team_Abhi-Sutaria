@@ -362,6 +362,33 @@ window.renderClientProfile = function (c) {
     html += `<div class="profile-field"><div class="label">${escapeHtml(k)}</div><div class="value">${escapeHtml(v)}</div></div>`;
   });
   html += '</div>';
+
+  // 🧮 Calculator Body Stats — the 11 shared inputs of the Calculators tab,
+  // stored on the cloud profile (sql/fitness_calculator.sql columns). When
+  // present they are what the calculator hub loads for this client.
+  if (typeof window.profileHasCalcStats === 'function' && window.profileHasCalcStats(p)) {
+    const cs = window.profileCalcStats(p);
+    const calcFields = [
+      ['Weight', cs.weight != null ? cs.weight + ' kg' : '—'],
+      ['Height', cs.height != null ? cs.height + ' cm' : '—'],
+      ['Age', cs.age != null ? cs.age : '—'],
+      ['Gender', cs.gender || '—'],
+      ['Activity Level', cs.activity || '—'],
+      ['Goal', cs.goal || '—'],
+      ['Waist', cs.waist != null ? cs.waist + ' cm' : '—'],
+      ['Neck', cs.neck != null ? cs.neck + ' cm' : '—'],
+      ['Hip', cs.hip != null ? cs.hip + ' cm' : '—'],
+      ['Bench Press', cs.bench != null ? cs.bench + ' kg' : '—'],
+      ['Body Fat %', cs.bodyfat != null ? cs.bodyfat + ' %' : '—']
+    ];
+    html += `<div class="profile-calc-view-title">🧮 Calculator Body Stats <span>— powers your Calculators tab</span></div><div class="profile-grid profile-calc-grid-view">`;
+    calcFields.forEach(([k, v]) => {
+      html += `<div class="profile-field"><div class="label">${escapeHtml(k)}</div><div class="value">${escapeHtml(v)}</div></div>`;
+    });
+    html += '</div>';
+  } else {
+    html += `<div class="profile-calc-empty">🧮 No calculator body stats saved yet — tap ✏️ Edit Profile and fill in the “Calculator Body Stats” section so your Calculators tab uses your real numbers.</div>`;
+  }
   $('clientProfileView').innerHTML = html;
 };
 
@@ -534,12 +561,40 @@ window.submitProfileEdit = async function () {
     medical_notes: $('peMedical').value.trim() || null,
     emergency_contact: $('peEmergency').value.trim() || null
   };
+  // 🧮 Calculator Body Stats (profile section) — stored as fit_* columns on
+  // client_profiles and copied into fitness_inputs when the trainer approves.
+  const vnum = (id) => { const n = parseFloat($(id).value); return Number.isFinite(n) ? n : null; };
+  proposed.fit_weight_kg      = vnum('pcWeight');
+  proposed.fit_height_cm      = vnum('pcHeightCm');
+  proposed.fit_age            = vnum('pcAge');
+  proposed.fit_gender         = $('pcGenderSel').value || null;
+  proposed.fit_activity_level = $('pcActivity').value || null;
+  proposed.fit_goal           = $('pcGoalSel').value || null;
+  proposed.fit_waist_cm       = vnum('pcWaist');
+  proposed.fit_neck_cm        = vnum('pcNeck');
+  proposed.fit_hip_cm         = vnum('pcHip');
+  proposed.fit_bench_kg       = vnum('pcBench');
+  proposed.fit_body_fat_pct   = vnum('pcBodyfat');
   const current = clientMapGet(APP_STATE.clientProfiles, APP_STATE.loggedInClient.id) || {};
   try {
     $('submitProfileBtn').disabled = true;
     const { data, error } = await APP_STATE.supabaseClient.from('profile_approvals')
       .insert({ client_id: APP_STATE.loggedInClient.id, proposed_data: proposed, current_data: current, status: 'pending' })
       .select().single();
+    if (error && typeof window.isSchemaMissingError === 'function' && window.isSchemaMissingError(error)) {
+      // Migration not applied yet → submit without the fit_* stats so the
+      // normal profile edit still works.
+      Object.keys(proposed).forEach(k => { if (k.startsWith('fit_')) delete proposed[k]; });
+      const retry = await APP_STATE.supabaseClient.from('profile_approvals')
+        .insert({ client_id: APP_STATE.loggedInClient.id, proposed_data: proposed, current_data: current, status: 'pending' })
+        .select().single();
+      if (retry.error) throw retry.error;
+      showStatus($('profileEditStatus'), '⚠️ Submitted — but run sql/fitness_calculator.sql to enable calculator body stats.', 'success');
+      $('profileEditModal').classList.add('hidden');
+      if (typeof window.syncClientPendingBanner === 'function') window.syncClientPendingBanner();
+      updateApprovalsBadge();
+      return;
+    }
     if (error) throw error;
     APP_STATE.profileApprovals.unshift(data);
     $('profileEditModal').classList.add('hidden');
