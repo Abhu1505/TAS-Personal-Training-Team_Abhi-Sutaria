@@ -117,6 +117,11 @@ window.performWipe = async function () {
       APP_STATE.workoutEditRequests = [];
       APP_STATE.savedReports = [];
       try { localStorage.removeItem('pt_progress_reports_v1'); } catch (e) {}
+      // 🧮 Calculator hub: clear every local cached copy AND re-issue the
+      // cloud delete, so saved calculator inputs never "come back" after a wipe.
+      if (typeof window.wipeFitnessInputs === 'function') {
+        try { await window.wipeFitnessInputs(); } catch (e) { console.warn('wipe: fitness cache skipped', e); }
+      }
       APP_STATE.selectedClientId = null;
       // Admin credentials are restored to the hardcoded config values — they
       // survive every wipe by design.

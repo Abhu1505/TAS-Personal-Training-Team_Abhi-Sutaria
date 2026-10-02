@@ -12,3 +12,6 @@ on conflict (id) do update
   set admin_login_id = excluded.admin_login_id,
       admin_password = excluded.admin_password,
       updated_at     = now();
+
+-- 🧮 Calculator hub saved inputs — cleared with the rest of the wipe.
+delete from public.fitness_inputs;

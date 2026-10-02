@@ -113,9 +113,9 @@
       }
     } catch (e) { /* missing table/columns → profile stats simply skipped */ }
     if (!p) p = (typeof clientMapGet === 'function' && clientMapGet(APP_STATE.clientProfiles, clientId)) || null;
-    if (!p || !window.profileHasCalcStats(p)) return baseInputs;
-    const stats = window.profileCalcStats(p);
-    return Object.assign({}, DEFAULTS, stats, baseInputs || {});
+    return { profile: p, inputs: window.profileHasCalcStats(p)
+      ? Object.assign({}, DEFAULTS, window.profileCalcStats(p), baseInputs || {})
+      : baseInputs };
   }
 
   // ---------- cloud/local persistence ----------
@@ -124,6 +124,7 @@
   window.loadFitnessInputsFor = async function (clientId) {
     scopeId = clientId || 'guest';
     let loaded = null;
+    let prof = null;
     if (clientId && clientId !== 'guest') {
       try {
         const sb = APP_STATE.supabaseClient;
@@ -140,11 +141,22 @@
         } catch (e) { }
       }
       // Approved profile body stats fill any field the hub has never saved yet.
-      loaded = await mergeProfileStats(clientId, loaded);
+      const merged = await mergeProfileStats(clientId, loaded);
+      loaded = merged.inputs;
+      prof = merged.profile;
     }
     current = Object.assign({}, DEFAULTS, loaded || {});
     renderInputs();
     renderCards();
+    // Small badge telling the user whether these values came from their
+    // approved Profile → Calculator Body Stats or from the hub itself.
+    try {
+      const fromProfile = !!(prof && window.profileHasCalcStats(prof));
+      document.querySelectorAll('.calc-profile-note').forEach(n => {
+        n.textContent = fromProfile ? '· synced from Profile body stats ✓' : '';
+        n.classList.toggle('hidden', !fromProfile);
+      });
+    } catch (e) { }
   };
 
   function persist() {
@@ -259,6 +271,14 @@
         .map(f => inputHtml(f[0], f[1], f[2], f[3], current[f[0]])).join('');
     });
   }
+
+  // "↺ Reset" restores the spec defaults for the currently loaded person.
+  window.resetFitnessInputs = function () {
+    current = Object.assign({}, DEFAULTS);
+    renderInputs();
+    renderCards();
+    persist();
+  };
 
   // Single delegated listener: ANY shared input change updates ALL cards live.
   function onInput(e) {
@@ -536,7 +556,7 @@
     }),
     r => card({
       g: 'linear-gradient(135deg,#f7971e,#ffd200)', i: '🔥', t: 'Calories Burned', s: '% of daily TDEE per workout',
-      v: Number.isFinite(r.tdee) ? i0(r.tdee) + ' kcal base',
+      v: Number.isFinite(r.tdee) ? i0(r.tdee) + ' kcal base' : '—',
       d: r.burn ? r.burn.map(b =>
         `<span class="calc-detail-item">${b[0]} <strong>${i0(b[1])} kcal</strong></span>`).join('') : ''
     }),
@@ -584,7 +604,10 @@
         <div class="calc-hint">Enter your details <strong>once</strong> — all 15 calculators update instantly. Nothing is sent anywhere until it saves to your cloud profile.</div>
       </div>
       <div class="calc-shared-panel">
-        <div class="calc-shared-label">📌 Shared Inputs — used by every calculator</div>
+        <div class="calc-shared-row">
+          <div class="calc-shared-label">📌 Shared Inputs — entered once, used by all 15 calculators <span class="calc-profile-note" id="calcProfileNote${scope === 'admin' ? 'A' : 'C'}"></span></div>
+          <button type="button" class="calc-reset-btn" onclick="resetFitnessInputs()" title="Restore default values">↺ Reset</button>
+        </div>
         <div class="calc-shared-inputs"></div>
       </div>
       <div class="calc-tabs" role="tablist" aria-label="Calculator categories">
