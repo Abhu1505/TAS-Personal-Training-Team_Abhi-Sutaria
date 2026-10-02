@@ -149,6 +149,10 @@ window.renderClientDashboard = function (c) {
   // 🔄 Weekly "update your profile" auto-popup (once per 7 days, only for
   // clients that already have an approved profile — see js/progress.js).
   try { if (typeof window.checkWeeklyProfileReminder === 'function') window.checkWeeklyProfileReminder(); } catch (e) { }
+  // ✨ Daily motivation popup — shows once per calendar day on first login.
+  try { if (typeof window.checkDailyMotivationPopup === 'function') window.checkDailyMotivationPopup(); } catch (e) { }
+  // 📈 Progress insights (weekly/monthly charts + approved calculator KPIs).
+  try { if (typeof window.renderClientInsights === 'function') window.renderClientInsights(c.id); } catch (e) { }
   initClientLogViewer();
 };
 

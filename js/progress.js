@@ -107,7 +107,11 @@ window.renderProgressDashboard = function () {
   box.innerHTML = `<div class="compliance-summary ${compliantCount === clients.length ? 'ok' : 'warn'}">${summary}</div>` + html;
 };
 
-window.renderClientProgress = function (c) { renderProgressEntries('clientProgressList', c.id, false); };
+window.renderClientProgress = function (c) {
+  renderProgressEntries('clientProgressList', c.id, false);
+  // 📈 Keep the charts/KPI insights panel in sync with the entry list.
+  try { if (typeof window.renderClientInsights === 'function') window.renderClientInsights(c.id); } catch (e) { }
+};
 
 window.renderClientHistory = function (c) {
   const container = $('clientHistoryList');
