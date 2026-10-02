@@ -151,6 +151,9 @@ window.decideApproval = async function (id, decision, type) {
     }
     if (res.error) throw res.error;
     if (type === 'progress') {
+      // 📌 Approval gate flag: a client-side decision here must clear the
+      // local "pending" marker so the calculator live-preview gate reopens.
+      try { localStorage.removeItem('tas_profile_pending:' + String(a.client_id)); } catch (e) { }
       if (decision === 'approved') {
         const proposed = a.proposed_data || {};
         if (a.action === 'add') {
@@ -180,6 +183,60 @@ window.decideApproval = async function (id, decision, type) {
       if (APP_STATE.loggedInClient && sameId(APP_STATE.loggedInClient.id, a.client_id)) renderClientProgress(APP_STATE.loggedInClient);
     } else {
       if (decision === 'approved') {
+        // 🗂️ SNAPSHOT-ON-RE-APPROVAL: when a client re-submits their profile
+        // (the weekly "🔄 Update my profile" flow) and the trainer approves
+        // AGAIN, the PREVIOUS approved data — every detail: basic fields +
+        // shared calculator inputs + the last update date — is archived into
+        // progress_entries first, so 📈 Progress builds up a history of each
+        // approved snapshot. Skipped for a client's very FIRST approval
+        // (there is no previous data to archive). Best-effort: any failure
+        // here never blocks the approval itself.
+        try {
+          const prevP = clientMapGet(APP_STATE.clientProfiles, a.client_id) || {};
+          const hasPrevData = window.profileHasApprovedData
+            ? window.profileHasApprovedData(prevP)
+            : (window.profileHasCalcStats ? window.profileHasCalcStats(prevP) : false);
+          if (hasPrevData && !a.proposed_data._snapshot) {
+            const snapDate = String((prevP.approved_at || prevP.updated_at
+              || (APP_STATE.profileApprovals.find(x => sameId(x.client_id, a.client_id) && x.status === 'approved') || {}).decided_at
+              || '')).slice(0, 10) || new Date().toISOString().slice(0, 10);
+            const stats = (typeof window.profileCalcStats === 'function') ? window.profileCalcStats(prevP) : {};
+            const snapNotes = [
+              '📋 Profile snapshot (archived automatically when the next profile update was approved)',
+              'Last updated: ' + snapDate,
+              'Height: ' + (prevP.height_cm ?? stats.height ?? '—') + ' cm',
+              'Gender: ' + (prevP.gender ?? stats.gender ?? '—'),
+              'Goal: ' + (prevP.goal ?? stats.goal ?? '—'),
+              'Age: ' + (stats.age ?? '—'),
+              'Weight: ' + (stats.weight ?? '—') + ' kg',
+              'Activity: ' + (stats.activity ?? '—'),
+              'Waist: ' + (stats.waist ?? '—') + ' cm · Neck: ' + (stats.neck ?? '—') + ' cm · Hip: ' + (stats.hip ?? '—') + ' cm',
+              'Bench: ' + (stats.bench ?? '—') + ' kg · Body fat: ' + (stats.bodyfat ?? '—') + ' %',
+              prevP.medical_notes ? ('Medical notes: ' + prevP.medical_notes) : '',
+              prevP.emergency_contact ? ('Emergency contact: ' + prevP.emergency_contact) : ''
+            ].filter(Boolean).join('\n');
+            const { data: snapRow, error: snapErr } = await APP_STATE.supabaseClient
+              .from('progress_entries')
+              .insert({
+                client_id: a.client_id,
+                entry_date: snapDate,
+                weight_kg: Number.isFinite(parseFloat(stats.weight)) ? parseFloat(stats.weight) : null,
+                body_fat_pct: Number.isFinite(parseFloat(stats.bodyfat)) ? parseFloat(stats.bodyfat) : null,
+                waist_cm: Number.isFinite(parseFloat(stats.waist)) ? parseFloat(stats.waist) : null,
+                notes: '[PROFILE-SNAPSHOT] ' + snapNotes,
+                added_by: 'profile-snapshot'
+              })
+              .select().single();
+            if (!snapErr && snapRow) {
+              const arr = clientMapGet(APP_STATE.progressEntries, a.client_id) || [];
+              arr.unshift(snapRow);
+              clientMapSet(APP_STATE.progressEntries, a.client_id, arr);
+            } else if (snapErr) {
+              console.warn('Profile snapshot archival skipped:', snapErr.message);
+            }
+          }
+        } catch (snapErr) { console.warn('Profile snapshot archival skipped:', snapErr); }
+
         const payload = {
           client_id: a.client_id,
           height_cm: a.proposed_data.height_cm ?? null,
@@ -224,6 +281,10 @@ window.decideApproval = async function (id, decision, type) {
         }
         if (res2.error) throw res2.error;
         APP_STATE.clientProfiles[a.client_id] = { ...(APP_STATE.clientProfiles[a.client_id] || {}), ...payload };
+        // 📌 Approval gate OFF: the profile decision (approve OR reject) clears
+        // the local pending marker, so the client's calculator live-preview is
+        // unblocked again and the Profile tab chip flips to ✅/✍️ on next render.
+        try { localStorage.removeItem('tas_profile_pending:' + String(a.client_id)); } catch (e) { }
         // Push the approved stats straight into the calculator hub's saved
         // inputs so the Calculators tab reflects them instantly (best-effort:
         // silently skipped if the fitness_inputs table doesn't exist yet).

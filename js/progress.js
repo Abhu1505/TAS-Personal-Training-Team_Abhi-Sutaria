@@ -399,11 +399,28 @@ window.renderClientProfile = function (c) {
     sharedHtml += `<div class="input-group"><label for="${id}">${escAttr(label)}</label>${control}</div>`;
   });
 
+  // ---------- approval status chip (⏳ pending / ✅ approved / ✍️ not submitted) ----------
+  const latestProfAp = (APP_STATE.profileApprovals || [])
+    .find(a => sameId(a.client_id, c.id));   // list is ordered newest-first
+  const profPending = !!(latestProfAp && latestProfAp.status === 'pending');
+  const hasApprovedProfile = window.profileHasApprovedData
+    ? window.profileHasApprovedData(p)
+    : (window.profileHasCalcStats ? window.profileHasCalcStats(p) : false);
+  let profStatusChip;
+  if (profPending) {
+    profStatusChip = `<span class="profile-status-chip profile-status-pending">⏳ Your latest submission is waiting for trainer approval — calculators stay blank until it is approved.</span>`;
+  } else if (hasApprovedProfile) {
+    profStatusChip = `<span class="profile-status-chip profile-status-approved">✅ Approved profile · updated ${escAttr((p.approved_at || p.updated_at || '').slice(0, 10) || 'recently')} — these values power all 15 calculators.</span>`;
+  } else {
+    profStatusChip = `<span class="profile-status-chip profile-status-none">✍️ No approved data yet — fill this form and press “📩 Save to Profile”. Until your trainer approves it, the 🧮 Calculators show no results.</span>`;
+  }
+
   // ---------- ONE merged form: basic details + shared inputs together ----------
   let html = `
+  ${profStatusChip}
   <div class="profile-shared-hint">✍️ Everything below is ONE form — edit your details and the 📌 Shared Inputs together, then press “📩 Save to Profile”. ALL items are sent to your trainer for approval at once. The 🧮 Calculators tab shows your values only AFTER your trainer approves them.</div>
   <form id="profileEditForm" autocomplete="off" onsubmit="return false;">
-    <div class="profile-calc-divider">👤 Basic Details <span>— reviewed &amp; approved by your trainer</span></div>
+    <div class="profile-calc-divider">👤 Basic Details <span>— sent for approval &amp; reviewed by your trainer</span></div>
     <div class="profile-calc-grid">
       <div class="input-group"><label for="pfHeight">Height (cm)</label><input type="number" id="pfHeight" step="0.1" min="0" inputmode="decimal" placeholder="175"></div>
       <div class="input-group"><label for="pfGender">Gender</label><input type="text" id="pfGender" placeholder="Male / Female"></div>
@@ -505,12 +522,24 @@ async function submitProfileFromView(client) {
     //    On APPROVAL the trainer's js/approvals.js writes the fit_* columns
     //    into client_profiles and syncs them into the calculator hub — that
     //    is the single path by which values "come into the calculator".
-    // 2) Approval path: send the whole merged form as ONE profile approval.
+    // 🗂️ SNAPSHOT-ON-RE-APPROVAL: before a NEW profile approval is accepted,
+    //    js/approvals.js archives the CURRENT approved profile (all details:
+    //    basic + shared inputs + last update date) into progress_entries, so
+    //    every weekly re-approval builds up a history in 📈 Progress. That
+    //    archiving needs the CURRENT approved row available locally, so make
+    //    sure it is loaded here (cheap single-row read, best-effort).
     const sb = APP_STATE.supabaseClient;
     if (!sb) {
       if (st) showStatus(st, '⚠️ Offline — nothing was submitted. Re-open the portal while connected and press “📩 Save to Profile” again.', 'info');
       return;
     }
+    // 🗂️ Best-effort refresh of the approved profile row (used by the
+    //    approval-time snapshot described above). Never blocks submitting.
+    try {
+      const { data: freshP } = await sb.from('client_profiles')
+        .select('*').eq('client_id', String(client.id)).maybeSingle();
+      if (freshP) clientMapSet(APP_STATE.clientProfiles, client.id, freshP);
+    } catch (e) { /* offline / table missing → local copy still usable */ }
     const { data, error } = await sb.from('profile_approvals')
       .insert({ client_id: client.id, proposed_data: proposed, current_data: currentP, status: 'pending' })
       .select().single();
@@ -528,6 +557,12 @@ async function submitProfileFromView(client) {
       throw error;
     } else {
       (APP_STATE.profileApprovals || []).unshift(data);
+      // 📌 Approval gate ON: mark this client as pending locally so the live
+      // typing → calculator preview stays blocked until the trainer decides
+      // (even between list refreshes / offline). Cleared by approvals.js on
+      // approve/reject and by loadFitnessInputsFor() when the server shows
+      // no pending row.
+      try { localStorage.setItem('tas_profile_pending:' + String(client.id), '1'); } catch (e) { }
       if (st) showStatus(st, '⏳ Submitted! Your trainer must approve these details before they appear in the 🧮 Calculators.', 'success');
       if (typeof window.showToast === 'function') window.showToast('⏳ Profile submitted — waiting for trainer approval', 'info');
     }
@@ -730,3 +765,113 @@ window.submitProfileEdit = async function () {
     window.showToast('👤 Use “📩 Save to Profile” in My Profile — all details are submitted together there.', 'info');
   }
 };
+
+// ============================================================
+// 🔄 WEEKLY PROFILE UPDATE REMINDER — auto popup, once a week
+// ------------------------------------------------------------
+// Once a client's profile is approved, ALL calculators run from those
+// approved values. To keep the numbers fresh, this popup automatically
+// asks the client to review & re-submit their profile every 7 days:
+//   • shows only for signed-in clients whose LAST approval is ≥ 7 days old,
+//   • appears at most once per week per client (localStorage timestamp),
+//   • "Update my profile" jumps to 👤 My Profile and focuses the form,
+//   • "Later" snoozes it for another 24 hours so it isn't naggy.
+// The modal markup lives at the bottom of index.html (#weeklyProfileModal).
+// ============================================================
+const WEEKLY_PROFILE_LS = 'tas_weekly_profile_popup_v1:';
+const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+// True when the approved profile row carries ANY real data (basic fields
+// or fit_* shared inputs) — used by the status chip + weekly reminder.
+window.profileHasApprovedData = function (p) {
+  if (!p) return false;
+  if (typeof window.profileHasCalcStats === 'function' && window.profileHasCalcStats(p)) return true;
+  return ['height_cm', 'gender', 'birth_date', 'goal', 'medical_notes', 'emergency_contact']
+    .some(k => p[k] !== null && p[k] !== undefined && String(p[k]).trim() !== '');
+};
+
+// Timestamp (ms) of the client's most recent APPROVED profile submission.
+window.getLastProfileApprovalTime = function (clientId) {
+  let last = 0;
+  try {
+    (APP_STATE.profileApprovals || []).forEach(a => {
+      if (!sameId(a.client_id, clientId)) return;
+      if (a.status !== 'approved') return;
+      const t = Date.parse(a.decided_at || a.submitted_at || '');
+      if (Number.isFinite(t) && t > last) last = t;
+    });
+  } catch (e) { }
+  return last;
+};
+
+window.shouldShowWeeklyProfileReminder = function (c) {
+  if (!c) return false;
+  const p = clientMapGet(APP_STATE.clientProfiles, c.id) || {};
+  // Brand-new clients with nothing approved yet already see the big
+  // "✍️ No approved data yet" banner on the Profile tab — no popup needed.
+  if (!window.profileHasApprovedData(p)) return false;
+  const lastPopupTs = Number(localStorage.getItem(WEEKLY_PROFILE_LS + String(c.id)) || 0);
+  return (Date.now() - lastPopupTs) >= WEEK_MS;
+};
+
+window.openWeeklyProfileReminder = function () {
+  const m = $('weeklyProfileModal');
+  if (m) m.classList.remove('hidden');
+};
+window.closeWeeklyProfileReminder = function (snooze) {
+  const m = $('weeklyProfileModal');
+  if (m) m.classList.add('hidden');
+  const c = APP_STATE.loggedInClient;
+  if (!c) return;
+  try {
+    // "Later" pushes the popup forward by one day; "Update now" marks the
+    // full 7-day cycle as answered (the new approval resets nothing — the
+    // next nudge comes a week after this one either way).
+    const ts = snooze ? (Date.now() - WEEK_MS + DAY_MS) : Date.now();
+    localStorage.setItem(WEEKLY_PROFILE_LS + String(c.id), String(ts));
+  } catch (e) { }
+};
+
+window.checkWeeklyProfileReminder = function () {
+  const c = APP_STATE.loggedInClient;
+  if (!c) return;
+  if (!window.shouldShowWeeklyProfileReminder(c)) return;
+  window.openWeeklyProfileReminder();
+};
+
+// Wire the popup buttons once (markup ships in index.html).
+document.addEventListener('click', (e) => {
+  const t = e.target;
+  if (!t || !t.closest) return;
+  if (t.closest('#wprUpdateBtn')) {
+    e.preventDefault();
+    window.closeWeeklyProfileReminder(false);
+    const tabBtn = document.querySelector('.tab-btn[data-ctab="profile"]');
+    if (tabBtn) { try { tabBtn.click(); } catch (err) { } }
+    setTimeout(() => {
+      const first = $('pfHeight') || $('pcx-weight');
+      if (first) { try { first.focus(); } catch (err) { } }
+    }, 250);
+    if (typeof window.showToast === 'function') {
+      window.showToast('👤 Review your details and press “📩 Save to Profile” — your trainer will approve the update.', 'info');
+    }
+  } else if (t.closest('#wprLaterBtn')) {
+    e.preventDefault();
+    window.closeWeeklyProfileReminder(true);
+  } else if (t.closest('#wprCloseX')) {
+    e.preventDefault();
+    window.closeWeeklyProfileReminder(true);
+  }
+});
+
+// Trigger points: right after login (auth.js → renderClientDashboard) and
+// then hourly while the portal stays open (catches the exact moment a week
+// rolls over without hammering the user).
+(function scheduleWeeklyReminder() {
+  const tryShow = () => { try { window.checkWeeklyProfileReminder(); } catch (e) { } };
+  setInterval(tryShow, 60 * 60 * 1000);   // hourly
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) setTimeout(tryShow, 3000);  // returning to the tab
+  });
+})();

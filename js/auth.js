@@ -146,6 +146,9 @@ window.renderClientDashboard = function (c) {
   if (typeof window.loadFitnessInputsFor === 'function') {
     window.loadFitnessInputsFor(c.id).catch(() => {});
   }
+  // 🔄 Weekly "update your profile" auto-popup (once per 7 days, only for
+  // clients that already have an approved profile — see js/progress.js).
+  try { if (typeof window.checkWeeklyProfileReminder === 'function') window.checkWeeklyProfileReminder(); } catch (e) { }
   initClientLogViewer();
 };
 
