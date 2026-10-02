@@ -28,8 +28,19 @@
 (function () {
   'use strict';
 
-  // ---------- defaults (spec-mandated) ----------
+  // ---------- defaults ----------
+  // CLIENTS START EMPTY: every shared input begins blank and the client
+  // fills them in under 👤 Profile → ✏️ Edit Profile. The calculator cards
+  // show a friendly "fill your profile" hint until enough values exist.
+  // (The trainer's 🧮 Calculators workspace can still ↺ Reset to these
+  // demo numbers — they are never pre-filled for a client.)
   const DEFAULTS = {
+    weight: '', height: '', age: '', gender: 'Male',
+    activity: 'Moderately Active', goal: 'Maintain',
+    waist: '', neck: '', hip: '', bench: '', bodyfat: ''
+  };
+  // Demo numbers used ONLY by the admin hub's ↺ Reset button.
+  const DEMO_DEFAULTS = {
     weight: 75, height: 175, age: 25, gender: 'Male',
     activity: 'Moderately Active', goal: 'Maintain',
     waist: 85, neck: 38, hip: 95, bench: 80, bodyfat: 15
@@ -170,9 +181,19 @@
   };
 
   function persist() {
+    // Never auto-save demo/guest state into a real client's row — this also
+    // closes a race where an old debounce timer fired AFTER logout/wipe and
+    // resurrected numbers for a client whose data was just cleared.
+    if (scopeId === 'guest' || !scopeId) {
+      try { localStorage.setItem(lsKey('guest'), JSON.stringify(current)); } catch (e) { }
+      return;
+    }
+    const S = window.APP_STATE || {};
+    const isOwnClient = S.loggedInClient && String(S.loggedInClient.id) === String(scopeId);
+    const isSelectedClient = !!S.selectedClientId && String(S.selectedClientId) === String(scopeId);
+    if (!isOwnClient && !isSelectedClient) return;
     // Always keep a local copy (offline-safe, instant restore).
-    try { localStorage.setItem(lsKey(scopeId || 'guest'), JSON.stringify(current)); } catch (e) { }
-    if (!scopeId || scopeId === 'guest') return;         // guests: local only
+    try { localStorage.setItem(lsKey(scopeId), JSON.stringify(current)); } catch (e) { }
     clearTimeout(saveTimer);
     saveTimer = setTimeout(async () => {
       try {
@@ -263,6 +284,8 @@
   };
 
   // ---------- shared input panel ----------
+  // Placeholders show the demo numbers only as faint hints — the fields
+  // themselves start EMPTY so every client enters their own details.
   function inputHtml(key, label, type, step, value) {
     const id = 'fitIn-' + key;
     let control;
@@ -270,7 +293,10 @@
       control = `<select class="calc-input" id="${id}" data-fitkey="${key}">` +
         type.map(o => `<option${o === value ? ' selected' : ''}>${esc(o)}</option>`).join('') + '</select>';
     } else {
-      control = `<input class="calc-input" type="number" id="${id}" data-fitkey="${key}" step="${step}" min="0" inputmode="decimal" value="${esc(value)}">`;
+      const ph = DEMO_DEFAULTS[key];
+      const v = (value === null || value === undefined || value === '' || !Number.isFinite(num(value)))
+        ? '' : esc(value);
+      control = `<input class="calc-input" type="number" id="${id}" data-fitkey="${key}" step="${step}" min="0" inputmode="decimal" placeholder="${ph}" value="${v}">`;
     }
     return `<div class="input-group calc-field"><label for="${id}">${esc(label)}</label>${control}</div>`;
   }
@@ -330,9 +356,10 @@
     window.renderCalcSharedInputs();
   }
 
-  // "↺ Reset" restores the spec defaults for the currently loaded person.
+  // "↺ Reset" — admin hub only. Restores the demo numbers so a trainer can
+  // preview the calculators quickly (clients never see this button).
   window.resetFitnessInputs = function () {
-    current = Object.assign({}, DEFAULTS);
+    current = Object.assign({}, DEFAULTS, DEMO_DEFAULTS);
     renderInputs();
     renderCards();
     persist();
@@ -480,10 +507,27 @@
     return `<div class="calc-bar"><div class="calc-bar-fill" style="width:${p}%;background:${color};"></div></div>`;
   }
 
+  // True when the loaded person has not entered any numbers yet — the
+  // cards then show a friendly "fill your profile" note instead of dashes.
+  function inputsEmpty() {
+    return [current.weight, current.height, current.age, current.waist,
+    current.neck, current.hip, current.bench, current.bodyfat]
+      .every(v => !Number.isFinite(num(v)));
+  }
+
   function renderCards() {
     const r = compute();
     document.querySelectorAll('.calc-grid').forEach(grid => {
       const scope = grid.dataset.calcscope || 'client';
+      if (scope !== 'admin' && inputsEmpty()) {
+        grid.innerHTML = `<div class="calc-empty-cta">
+          <div class="calc-empty-icon">🧮</div>
+          <div class="calc-empty-title">Your calculators are ready — but you haven't entered your details yet.</div>
+          <div class="calc-empty-text">Open <strong>👤 Profile → ✏️ Edit Profile → 📌 Shared Inputs</strong>, fill in your Weight, Height, Age and measurements and press <strong>Save to Profile</strong>. All 15 calculators light up instantly.</div>
+          <button type="button" class="btn-green-small calc-empty-btn js-goto-profile-edit">✏️ Edit My Profile</button>
+        </div>`;
+        return;
+      }
       grid.innerHTML = CARDS.map(c => c(r, scope)).join('');
     });
   }
