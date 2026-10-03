@@ -1058,24 +1058,75 @@ details[open].howto-card .howto-summary::after{transform:rotate(180deg);}
   .home-stat{min-width:76px;}
 }
 
-/* ---------- 🔄 Update Site button + popup ---------- */
-.btn-update-site { background:#00695c; color:#fff; border:1px solid #004d40; }
-.btn-update-site:hover { background:#004d40; }
-#updateSitePopup { position:fixed; inset:0; z-index:9999; display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,.5); padding:1rem; }
-#updateSitePopup .us-popup-box { max-width:440px; width:100%; background:#fff; border-radius:14px; padding:1.2rem 1.3rem; box-shadow:0 12px 40px rgba(0,0,0,.3); text-align:center; max-height:85vh; overflow:auto; }
-#updateSitePopup h3 { margin:0 0 .5rem; color:#00695c; }
-#updateSitePopup p { margin:0 0 1rem; font-size:.85rem; color:#444; line-height:1.45; }
-#updateSitePopup .usp-icon { font-size:2rem; margin-bottom:.3rem; }
-#updateSitePopup .usp-lead { margin-bottom:.4rem; font-weight:600; color:#00695c; }
-#updateSitePopup .usp-notes { text-align:left; margin:0 0 1rem; }
-#updateSitePopup .us-rel { background:#f2f8f6; border:1px solid #d7e8e2; border-radius:10px; padding:.6rem .8rem; margin-bottom:.5rem; }
-#updateSitePopup .us-rel-head { font-weight:700; color:#00695c; font-size:.85rem; display:flex; justify-content:space-between; gap:.6rem; flex-wrap:wrap; }
-#updateSitePopup .us-rel-date { font-weight:500; color:#777; font-size:.75rem; white-space:nowrap; }
-#updateSitePopup .us-rel-list { margin:.35rem 0 0; padding-left:1.15rem; font-size:.82rem; color:#333; line-height:1.5; }
-#updateSitePopup .us-rel-list li { margin:.15rem 0; }
-#updateSitePopup .usp-foot { font-size:.78rem; color:#666; margin-bottom:.9rem; }
-#updateSitePopup .usp-actions { display:flex; gap:.6rem; justify-content:center; }
-@media (max-width:600px){ #updateSitePopup .us-popup-box { padding:1rem; } }
+/* ---------- 🔄 Update Site button + "What's New" box popup ---------- */
+.btn-update-site { background:var(--grad-brand); color:#fff; border:1px solid var(--brand-800); font-weight:700; }
+.btn-update-site:hover { filter:brightness(1.08); transform:translateY(-1px); }
+
+/* Backdrop + centered modal box */
+#updateSitePopup{position:fixed;inset:0;z-index:10000;display:flex;align-items:center;justify-content:center;
+  background:rgba(14,34,49,.55);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);padding:1rem;}
+#updateSitePopup:not(.hidden){animation:uspFadeIn .22s ease both;}
+#updateSitePopup.hidden{display:none !important;}
+#updateSitePopup .us-popup-box{width:min(460px,100%);max-height:86vh;display:flex;flex-direction:column;
+  background:var(--surface);border-radius:var(--r-xl);border:1px solid var(--line-soft);
+  box-shadow:var(--shadow-xl);overflow:hidden;text-align:left;}
+#updateSitePopup:not(.hidden) .us-popup-box{animation:uspPopIn .3s var(--ease) both;}
+
+/* Gradient banner */
+#updateSitePopup .usp-banner{position:relative;padding:1.25rem 1.4rem 1.1rem;text-align:center;
+  background:linear-gradient(135deg,var(--brand-900),var(--brand-700) 55%,var(--brand-500));color:#fff;}
+#updateSitePopup .usp-badge{display:inline-block;font-size:.62rem;font-weight:800;letter-spacing:.14em;
+  padding:.22rem .7rem;border-radius:var(--r-pill);background:rgba(255,255,255,.16);
+  border:1px solid rgba(255,255,255,.35);margin-bottom:.55rem;}
+#updateSitePopup .usp-icon{font-size:2.1rem;line-height:1;margin-bottom:.35rem;
+  filter:drop-shadow(0 4px 10px rgba(0,0,0,.3));}
+#updateSitePopup .usp-banner h3{margin:0;font-size:1.2rem;font-weight:800;letter-spacing:-.01em;color:#fff;}
+#updateSitePopup .usp-chip{display:inline-block;margin-top:.5rem;font-size:.72rem;font-weight:800;
+  padding:.25rem .8rem;border-radius:var(--r-pill);background:#ffd76a;color:#4a3200;
+  box-shadow:0 2px 8px rgba(0,0,0,.25);}
+
+/* Body + release note cards */
+#updateSitePopup .usp-body{padding:1.05rem 1.25rem .9rem;overflow:auto;}
+#updateSitePopup .usp-section-label{font-size:.7rem;font-weight:800;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--muted);margin-bottom:.6rem;}
+#updateSitePopup .usp-notes{display:flex;flex-direction:column;gap:.6rem;}
+#updateSitePopup .us-rel{background:var(--brand-50);border:1px solid var(--brand-100);
+  border-left:4px solid var(--brand-600);border-radius:var(--r-md);padding:.7rem .9rem;
+  box-shadow:var(--shadow-sm);}
+#updateSitePopup .us-rel-top{display:flex;align-items:center;justify-content:space-between;gap:.6rem;flex-wrap:wrap;}
+#updateSitePopup .us-rel-ver{font-size:.68rem;font-weight:800;letter-spacing:.06em;color:#fff;
+  background:var(--grad-brand);padding:.18rem .6rem;border-radius:var(--r-pill);}
+#updateSitePopup .us-rel-date{font-size:.7rem;font-weight:600;color:var(--muted);}
+#updateSitePopup .us-rel-title{font-size:.92rem;font-weight:800;color:var(--brand-800);margin:.4rem 0 .15rem;}
+#updateSitePopup .us-rel-list{margin:.25rem 0 0;padding-left:1.15rem;font-size:.82rem;
+  color:var(--ink-soft);line-height:1.55;}
+#updateSitePopup .us-rel-list li{margin:.2rem 0;}
+#updateSitePopup .us-rel-list li::marker{color:var(--brand-600);}
+#updateSitePopup .us-rel-generic p{margin:0;font-size:.85rem;color:var(--ink-soft);line-height:1.5;}
+#updateSitePopup .usp-foot{margin-top:.8rem;font-size:.76rem;color:var(--muted);line-height:1.5;
+  background:var(--surface-tint);border:1px dashed var(--line);border-radius:var(--r-sm);padding:.55rem .75rem;}
+
+/* Action buttons */
+#updateSitePopup .usp-actions{display:flex;gap:.6rem;justify-content:flex-end;align-items:center;
+  padding:.9rem 1.25rem calc(.9rem + env(safe-area-inset-bottom));
+  background:var(--surface-alt);border-top:1px solid var(--line-soft);}
+#updateSitePopup .usp-update-btn{padding:.6rem 1.1rem;font-size:.82rem;font-weight:800;
+  border-radius:var(--r-md);min-height:40px;box-shadow:0 4px 14px rgba(31,78,61,.35);}
+@media (max-width:600px){
+  #updateSitePopup{padding:.75rem;}
+  #updateSitePopup .us-popup-box{max-height:92vh;}
+  #updateSitePopup .usp-banner{padding:1rem 1rem .9rem;}
+  #updateSitePopup .usp-body{padding:.9rem 1rem .75rem;}
+  #updateSitePopup .usp-actions{flex-direction:row-reverse;justify-content:space-between;padding:.8rem 1rem;}
+  #updateSitePopup .usp-update-btn{flex:1;justify-content:center;text-align:center;}
+}
+@keyframes uspFadeIn{from{opacity:0}to{opacity:1}}
+@keyframes uspPopIn{from{opacity:0;transform:translateY(18px) scale(.94)}to{opacity:1;transform:translateY(0) scale(1)}}
+@media (prefers-reduced-motion:reduce){
+  #updateSitePopup,#updateSitePopup .us-popup-box{animation:none !important;}
+}
+[data-theme="dark"] #updateSitePopup .us-popup-box{background:var(--surface);border-color:var(--line);}
+[data-theme="dark"] #updateSitePopup .us-rel{background:var(--surface-tint);border-color:var(--line);}
 
 /* ============================================================
    PROFESSIONAL FINISHING TOUCHES (v7)

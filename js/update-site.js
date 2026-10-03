@@ -107,13 +107,17 @@
   function whatsNewHtml(fp) {
     const rels = releasesSince(fp);
     if (!rels.length) {
-      return '<p>A newer version of this site is live on the server. Press <strong>🔄 Update Site</strong> to load it.</p>';
+      return '<div class="us-rel us-rel-generic"><p>A newer version of this site is live on the server. Press <strong>🔄 Update Site Now</strong> to load it.</p></div>';
     }
     return rels.map(r =>
-      '<div class="us-rel"><div class="us-rel-head">' + esc(r.ver ? r.ver + ' — ' : '') + esc(r.title) +
-      '<span class="us-rel-date">' + esc(r.date) + '</span></div>' +
-      '<ul class="us-rel-list">' + r.items.map(i => '<li>' + esc(i) + '</li>').join('') +
-      '</ul></div>'
+      '<div class="us-rel">' +
+        '<div class="us-rel-top">' +
+          '<span class="us-rel-ver">' + esc(r.ver || SITE_VERSION) + '</span>' +
+          '<span class="us-rel-date">📅 ' + esc(r.date) + '</span>' +
+        '</div>' +
+        '<div class="us-rel-title">' + esc(r.title) + '</div>' +
+        '<ul class="us-rel-list">' + r.items.map(i => '<li>' + esc(i) + '</li>').join('') + '</ul>' +
+      '</div>'
     ).join('');
   }
 
@@ -122,38 +126,65 @@
     if (p) return p;
     p = document.createElement('div');
     p.id = 'updateSitePopup';
+    p.className = 'hidden';
     p.setAttribute('role', 'dialog');
     p.setAttribute('aria-modal', 'true');
     p.setAttribute('aria-labelledby', 'uspTitle');
     p.innerHTML = `
       <div class="us-popup-box">
-        <div class="usp-icon">🆕</div>
-        <h3 id="uspTitle">A new update is available!</h3>
-        <p class="usp-lead" id="uspVersionLine">You are on version: <strong>${esc(SITE_VERSION)}</strong></p>
-        <p class="usp-lead">Here's what has been updated:</p>
-        <div class="usp-notes" id="uspNotes"></div>
-        <p class="usp-foot">You are still viewing the old cached page — press
-          <strong>🔄 Update Site</strong> to load the latest version now.</p>
+        <div class="usp-banner">
+          <div class="usp-badge">NEW UPDATE</div>
+          <div class="usp-icon">🚀</div>
+          <h3 id="uspTitle">What's New on TAS</h3>
+          <div class="usp-chip" id="uspVersionChip">${esc(SITE_VERSION)}</div>
+        </div>
+        <div class="usp-body">
+          <div class="usp-section-label">Here's what has been updated</div>
+          <div class="usp-notes" id="uspNotes"></div>
+          <div class="usp-foot">You're still viewing the old cached page. Press
+            <strong>🔄 Update Site Now</strong> to load the latest version instantly.</div>
+        </div>
         <div class="usp-actions">
           <button class="btn-secondary btn-small" id="uspLaterBtn" type="button">⏳ Later</button>
-          <button class="btn-update-site btn-small" id="uspUpdateBtn" type="button">🔄 Update Site now</button>
+          <button class="btn-update-site usp-update-btn" id="uspUpdateBtn" type="button">🔄 Update Site Now</button>
         </div>
       </div>`;
     document.body.appendChild(p);
-    document.getElementById('uspLaterBtn').addEventListener('click', () => {
-      p.classList.add('hidden');
-    });
+    document.getElementById('uspLaterBtn').addEventListener('click', closePopup);
     document.getElementById('uspUpdateBtn').addEventListener('click', doUpdate);
     // Clicking the backdrop also dismisses (same as "Later").
-    p.addEventListener('click', (e) => { if (e.target === p) p.classList.add('hidden'); });
+    p.addEventListener('click', (e) => { if (e.target === p) closePopup(); });
+    // Escape key closes the popup too.
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && !p.classList.contains('hidden')) closePopup();
+    });
     return p;
   }
 
-  // The header buttons open the same popup (shows what's new + update action).
-  function openUpdatePopup() {
+  function openPopup(notesFp) {
     const p = ensurePopup();
-    document.getElementById('uspNotes').innerHTML = whatsNewHtml(currentFp);
+    document.getElementById('uspNotes').innerHTML = whatsNewHtml(notesFp);
     p.classList.remove('hidden');
+    // Force a reflow so the entrance animation always plays, even when the
+    // popup was already in the DOM.
+    const box = p.querySelector('.us-popup-box');
+    if (box && box.style) { box.style.animation = 'none'; void box.offsetWidth; box.style.animation = ''; }
+    const btn = document.getElementById('uspUpdateBtn');
+    if (btn) setTimeout(() => btn.focus(), 60);
+  }
+
+  function closePopup() {
+    const p = document.getElementById('updateSitePopup');
+    if (p) p.classList.add('hidden');
+  }
+
+  // The header buttons ALWAYS open the "What's New" popup first — the actual
+  // reload only happens via the "🔄 Update Site Now" button inside the box.
+  function openUpdatePopup() {
+    let seenRel = null;
+    try { seenRel = localStorage.getItem(KEY + '_rel'); } catch (e) {}
+    // If we know a newer live fingerprint, prefer showing notes relative to it.
+    openPopup(seenRel);
   }
 
   function doUpdate() {
@@ -171,16 +202,20 @@
 
   function markUpdateAvailable(liveFp) {
     currentFp = liveFp;
-    if (updateReady) return;
+    bindHeaderButtons();
+    if (updateReady) return; // popup/toast already shown once this session
     updateReady = true;
     showUpdateButton();
     let seenRel = null;
     try { seenRel = localStorage.getItem(KEY + '_rel'); } catch (e) {}
-    const notes = document.createElement('div');
-    notes.innerHTML = whatsNewHtml(seenRel);
-    const p = ensurePopup();
-    document.getElementById('uspNotes').innerHTML = notes.innerHTML;
-    p.classList.remove('hidden');
+    // Auto-open the "What's New" box popup so the user immediately sees
+    // exactly what changed, plus the toast notification.
+    openPopup(seenRel);
+    if (typeof showToast === 'function') showToast('🆕 New site update available — see What\'s New and press 🔄 Update Site Now.', 'info', 8000);
+  }
+
+  // Bind the header buttons once (cheap safety — done on first check).
+  function bindHeaderButtons() {
     ['adminUpdateSiteBtn', 'clientUpdateSiteBtn'].forEach(id => {
       const b = document.getElementById(id);
       if (b && !b.dataset.usBound) {
@@ -188,7 +223,6 @@
         b.addEventListener('click', openUpdatePopup);
       }
     });
-    if (typeof showToast === 'function') showToast('🆕 New site update available — press 🔄 Update Site to see what\'s new.', 'info', 8000);
   }
 
   /* ---------- detection ---------- */
@@ -198,10 +232,7 @@
       const saved = localStorage.getItem(KEY);
       if (firstRun) {
         // Bind click handlers even before an update exists (cheap safety).
-        ['adminUpdateSiteBtn', 'clientUpdateSiteBtn'].forEach(id => {
-          const b = document.getElementById(id);
-          if (b && !b.dataset.usBound) { b.dataset.usBound = '1'; b.addEventListener('click', openUpdatePopup); }
-        });
+        bindHeaderButtons();
         if (saved && saved !== liveFp) {
           // The server already has something newer than the page we're running.
           markUpdateAvailable(liveFp);
