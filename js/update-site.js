@@ -2,6 +2,10 @@
 // 🔄 UPDATE SITE — deployment watcher (client + admin portal)
 // ------------------------------------------------------------
 // How it works:
+//  • The release notes live in ONE place only: RELEASES below,
+//    newest entry first. Each entry's fingerprint is computed
+//    automatically from its text, so there is no version number
+//    to keep in sync anywhere else in the codebase.
 //  • This page itself is a fingerprint of the deployed version.
 //    Every deploy changes index.html, so we hash the raw HTML
 //    (no-store fetch) and compare it with the copy that produced
@@ -10,13 +14,21 @@
 //    browser served us, an even NEWER deploy already happened →
 //    show the popup immediately.
 //  • Then we re-check every 60s while the tab is open. When a new
-//    deployment is detected the "🔄 Update Site" button appears
-//    and a popup tells the user their content is still the old
-//    cached version until they update.
+//    deployment is detected a notification toast pops up AND a
+//    modal shows exactly WHAT has been updated (the release notes
+//    for every version between the user's and the live one), with
+//    the "🔄 Update Site" action inside the popup.
 //  • Clicking the button stores the new fingerprint and does a
 //    cache-busting reload, so the browser loads the latest
 //    deployment. Until then the site keeps working on the old
 //    (cached) page — nothing else breaks.
+//  • The "🔄 Update Site" buttons are hidden by default; they only
+//    ever appear via this script when an update is available.
+//
+// ➕ TO PUBLISH A NEW UPDATE: add ONE line at the TOP of RELEASES:
+//      { date: 'DD Mon YYYY', title: 'Short headline', items: [
+//        'What changed…', 'Another change…' ] },
+//    Nothing else needs to be touched anywhere.
 // ============================================================
 (function () {
   'use strict';
@@ -25,6 +37,32 @@
   const CHECK_MS = 60 * 1000; // poll once a minute
   let currentFp = null;       // fingerprint of the page actually running
   let updateReady = false;
+
+  /* ---------- 📝 RELEASE NOTES — single source of truth ---------- */
+  const RELEASES = [
+    {
+      date: '03 Oct 2026',
+      title: 'Client portal navigation fix',
+      items: [
+        'The tab bar in the client portal now stays fixed in one place — tabs no longer float around or become invisible while scrolling.'
+      ]
+    }
+  ];
+  // Fingerprint each release from its own text (stable across devices).
+  RELEASES.forEach(r => { r.fp = 'rel-' + djb2(r.date + '|' + r.title + '|' + r.items.join('|')); });
+
+  function djb2(str) {
+    let h = 5381;
+    for (let i = 0; i < str.length; i++) h = ((h << 5) + h + str.charCodeAt(i)) | 0;
+    return (h >>> 0).toString(16);
+  }
+
+  // Releases strictly newer than `fp` (empty fp ⇒ everything known).
+  function releasesSince(fp) {
+    if (!fp) return RELEASES.slice();
+    const idx = RELEASES.findIndex(r => r.fp === fp);
+    return idx === -1 ? RELEASES.slice() : RELEASES.slice(0, idx);
+  }
 
   async function hashText(str) {
     try {
@@ -53,32 +91,69 @@
     });
   }
 
+  function esc(s) {
+    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  // Build the "what's new" HTML from the single RELEASES list.
+  function whatsNewHtml(fp) {
+    const rels = releasesSince(fp);
+    if (!rels.length) {
+      return '<p>A newer version of this site is live on the server. Press <strong>🔄 Update Site</strong> to load it.</p>';
+    }
+    return rels.map(r =>
+      '<div class="us-rel"><div class="us-rel-head">' + esc(r.title) +
+      '<span class="us-rel-date">' + esc(r.date) + '</span></div>' +
+      '<ul class="us-rel-list">' + r.items.map(i => '<li>' + esc(i) + '</li>').join('') +
+      '</ul></div>'
+    ).join('');
+  }
+
   function ensurePopup() {
     let p = document.getElementById('updateSitePopup');
     if (p) return p;
     p = document.createElement('div');
     p.id = 'updateSitePopup';
-    p.className = 'update-site-popup';
+    p.setAttribute('role', 'dialog');
+    p.setAttribute('aria-modal', 'true');
+    p.setAttribute('aria-labelledby', 'uspTitle');
     p.innerHTML = `
-      <div class="usp-icon">🆕</div>
-      <div class="usp-text"><strong>A new update is available!</strong><br>
-        A newer version of this site is live on the server. You are still viewing
-        the old cached page — you won't see the updated content until you press
-        <em>🔄 Update Site</em>.</div>
-      <div class="usp-actions">
-        <button class="btn-secondary btn-small" id="uspLaterBtn" type="button">⏳ Later</button>
-        <button class="btn-update-site btn-small" id="uspUpdateBtn" type="button">🔄 Update Site now</button>
+      <div class="us-popup-box">
+        <div class="usp-icon">🆕</div>
+        <h3 id="uspTitle">A new update is available!</h3>
+        <p class="usp-lead">Here's what has been updated:</p>
+        <div class="usp-notes" id="uspNotes"></div>
+        <p class="usp-foot">You are still viewing the old cached page — press
+          <strong>🔄 Update Site</strong> to load the latest version now.</p>
+        <div class="usp-actions">
+          <button class="btn-secondary btn-small" id="uspLaterBtn" type="button">⏳ Later</button>
+          <button class="btn-update-site btn-small" id="uspUpdateBtn" type="button">🔄 Update Site now</button>
+        </div>
       </div>`;
     document.body.appendChild(p);
     document.getElementById('uspLaterBtn').addEventListener('click', () => {
       p.classList.add('hidden');
     });
     document.getElementById('uspUpdateBtn').addEventListener('click', doUpdate);
+    // Clicking the backdrop also dismisses (same as "Later").
+    p.addEventListener('click', (e) => { if (e.target === p) p.classList.add('hidden'); });
     return p;
   }
 
+  // The header buttons open the same popup (shows what's new + update action).
+  function openUpdatePopup() {
+    const p = ensurePopup();
+    document.getElementById('uspNotes').innerHTML = whatsNewHtml(currentFp);
+    p.classList.remove('hidden');
+  }
+
   function doUpdate() {
-    try { localStorage.setItem(KEY, currentFp || ''); } catch (e) {}
+    try {
+      // Remember which release the user is moving to (for future "what's new").
+      const last = RELEASES[0];
+      if (last) localStorage.setItem(KEY + '_rel', last.fp);
+      localStorage.setItem(KEY, currentFp || '');
+    } catch (e) {}
     // Cache-busting reload so the browser must fetch the newest deployment.
     const base = location.href.split('#')[0];
     const clean = base.replace(/[?&]_r=[^&]*/, '');
@@ -90,15 +165,21 @@
     if (updateReady) return;
     updateReady = true;
     showUpdateButton();
-    ensurePopup().classList.remove('hidden');
+    let seenRel = null;
+    try { seenRel = localStorage.getItem(KEY + '_rel'); } catch (e) {}
+    const notes = document.createElement('div');
+    notes.innerHTML = whatsNewHtml(seenRel);
+    const p = ensurePopup();
+    document.getElementById('uspNotes').innerHTML = notes.innerHTML;
+    p.classList.remove('hidden');
     ['adminUpdateSiteBtn', 'clientUpdateSiteBtn'].forEach(id => {
       const b = document.getElementById(id);
       if (b && !b.dataset.usBound) {
         b.dataset.usBound = '1';
-        b.addEventListener('click', doUpdate);
+        b.addEventListener('click', openUpdatePopup);
       }
     });
-    if (typeof showToast === 'function') showToast('🆕 New site update available — press 🔄 Update Site.', 'info', 6000);
+    if (typeof showToast === 'function') showToast('🆕 New site update available — press 🔄 Update Site to see what\'s new.', 'info', 8000);
   }
 
   /* ---------- detection ---------- */
@@ -110,13 +191,19 @@
         // Bind click handlers even before an update exists (cheap safety).
         ['adminUpdateSiteBtn', 'clientUpdateSiteBtn'].forEach(id => {
           const b = document.getElementById(id);
-          if (b && !b.dataset.usBound) { b.dataset.usBound = '1'; b.addEventListener('click', doUpdate); }
+          if (b && !b.dataset.usBound) { b.dataset.usBound = '1'; b.addEventListener('click', openUpdatePopup); }
         });
         if (saved && saved !== liveFp) {
           // The server already has something newer than the page we're running.
           markUpdateAvailable(liveFp);
         } else if (!saved) {
-          try { localStorage.setItem(KEY, liveFp); } catch (e) {}
+          try {
+            localStorage.setItem(KEY, liveFp);
+            // First visit on the current version: mark releases as seen so
+            // the next deploy only shows genuinely new notes.
+            const last = RELEASES[0];
+            if (last) localStorage.setItem(KEY + '_rel', last.fp);
+          } catch (e) {}
         }
         return;
       }
