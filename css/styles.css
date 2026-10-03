@@ -1062,9 +1062,19 @@ details[open].howto-card .howto-summary::after{transform:rotate(180deg);}
 .btn-update-site { background:#00695c; color:#fff; border:1px solid #004d40; }
 .btn-update-site:hover { background:#004d40; }
 #updateSitePopup { position:fixed; inset:0; z-index:9999; display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,.5); padding:1rem; }
-#updateSitePopup .us-popup-box { max-width:420px; width:100%; background:#fff; border-radius:14px; padding:1.2rem 1.3rem; box-shadow:0 12px 40px rgba(0,0,0,.3); text-align:center; }
+#updateSitePopup .us-popup-box { max-width:440px; width:100%; background:#fff; border-radius:14px; padding:1.2rem 1.3rem; box-shadow:0 12px 40px rgba(0,0,0,.3); text-align:center; max-height:85vh; overflow:auto; }
 #updateSitePopup h3 { margin:0 0 .5rem; color:#00695c; }
 #updateSitePopup p { margin:0 0 1rem; font-size:.85rem; color:#444; line-height:1.45; }
+#updateSitePopup .usp-icon { font-size:2rem; margin-bottom:.3rem; }
+#updateSitePopup .usp-lead { margin-bottom:.4rem; font-weight:600; color:#00695c; }
+#updateSitePopup .usp-notes { text-align:left; margin:0 0 1rem; }
+#updateSitePopup .us-rel { background:#f2f8f6; border:1px solid #d7e8e2; border-radius:10px; padding:.6rem .8rem; margin-bottom:.5rem; }
+#updateSitePopup .us-rel-head { font-weight:700; color:#00695c; font-size:.85rem; display:flex; justify-content:space-between; gap:.6rem; flex-wrap:wrap; }
+#updateSitePopup .us-rel-date { font-weight:500; color:#777; font-size:.75rem; white-space:nowrap; }
+#updateSitePopup .us-rel-list { margin:.35rem 0 0; padding-left:1.15rem; font-size:.82rem; color:#333; line-height:1.5; }
+#updateSitePopup .us-rel-list li { margin:.15rem 0; }
+#updateSitePopup .usp-foot { font-size:.78rem; color:#666; margin-bottom:.9rem; }
+#updateSitePopup .usp-actions { display:flex; gap:.6rem; justify-content:center; }
 @media (max-width:600px){ #updateSitePopup .us-popup-box { padding:1rem; } }
 
 /* ============================================================
