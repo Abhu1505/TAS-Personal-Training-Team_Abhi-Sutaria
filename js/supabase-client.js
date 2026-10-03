@@ -515,6 +515,116 @@ const PROVISION_SQL = {
     'create policy pr_delete on public.progress_reports for delete using (true);'
   ].join('\n'),
 
+  // ---- v3 hardening: in-portal messaging ----
+  messages: [
+    'create table if not exists public.messages (',
+    '  id uuid primary key default gen_random_uuid(),',
+    '  thread_id text not null,',
+    '  client_id text,',
+    "  from_role text not null default 'trainer',",
+    '  from_name text,',
+    '  body text not null,',
+    '  created_at timestamptz not null default now());',
+    'create index if not exists msg_thread_idx on public.messages (thread_id, created_at);',
+    'alter table public.messages enable row level security;',
+    'drop policy if exists msg_select on public.messages;',
+    'create policy msg_select on public.messages for select using (true);',
+    'drop policy if exists msg_insert on public.messages;',
+    'create policy msg_insert on public.messages for insert with check (true);'
+  ].join('\n'),
+
+  // ---- v3 hardening: periodization program templates ----
+  program_templates: [
+    'create table if not exists public.program_templates (',
+    '  id uuid primary key default gen_random_uuid(),',
+    '  name text not null,',
+    '  weeks integer not null default 4,',
+    '  deload_every integer not null default 0,',
+    "  goal text not null default 'general',",
+    "  body jsonb not null default '{}'::jsonb,",
+    '  updated_at timestamptz not null default now());',
+    'alter table public.program_templates enable row level security;',
+    'drop policy if exists pt_select on public.program_templates;',
+    'create policy pt_select on public.program_templates for select using (true);',
+    'drop policy if exists pt_insert on public.program_templates;',
+    'create policy pt_insert on public.program_templates for insert with check (true);',
+    'drop policy if exists pt_update on public.program_templates;',
+    'create policy pt_update on public.program_templates for update using (true) with check (true);',
+    'drop policy if exists pt_delete on public.program_templates;',
+    'create policy pt_delete on public.program_templates for delete using (true);'
+  ].join('\n'),
+
+  // ---- v3 hardening: error tracking (observability) ----
+  app_errors: [
+    'create table if not exists public.app_errors (',
+    '  id uuid primary key default gen_random_uuid(),',
+    '  message text,',
+    '  stack text,',
+    '  page text,',
+    '  ua text,',
+    '  role text,',
+    '  at timestamptz not null default now());',
+    'create index if not exists ae_at_idx on public.app_errors (at desc);',
+    'alter table public.app_errors enable row level security;',
+    'drop policy if exists ae_select on public.app_errors;',
+    'create policy ae_select on public.app_errors for select using (true);',
+    'drop policy if exists ae_insert on public.app_errors;',
+    'create policy ae_insert on public.app_errors for insert with check (true);',
+    'drop policy if exists ae_delete on public.app_errors;',
+    'create policy ae_delete on public.app_errors for delete using (true);'
+  ].join('\n'),
+
+  // ---- v3 hardening: passkeys + device sessions + hashed creds ----
+  passkey_credentials: [
+    'create table if not exists public.passkey_credentials (',
+    '  id uuid primary key default gen_random_uuid(),',
+    "  scope text not null default 'client',",
+    '  scope_id text not null,',
+    '  cred_id text not null unique,',
+    '  public_key text,',
+    '  public_key_json text,',
+    '  label text,',
+    '  created_at timestamptz not null default now());',
+    'create index if not exists pk_scope_idx on public.passkey_credentials (scope_id);',
+    'alter table public.passkey_credentials add column if not exists public_key_json text;',
+    'alter table public.passkey_credentials enable row level security;',
+    'drop policy if exists pk_select on public.passkey_credentials;',
+    'create policy pk_select on public.passkey_credentials for select using (true);',
+    'drop policy if exists pk_insert on public.passkey_credentials;',
+    'create policy pk_insert on public.passkey_credentials for insert with check (true);',
+    'drop policy if exists pk_delete on public.passkey_credentials;',
+    'create policy pk_delete on public.passkey_credentials for delete using (true);'
+  ].join('\n'),
+
+  device_sessions: [
+    'create table if not exists public.device_sessions (',
+    '  id text primary key,',
+    '  role text not null,',
+    '  login_id text not null,',
+    '  device_label text,',
+    '  region text,',
+    '  last_seen_at timestamptz not null default now());',
+    'create index if not exists ds_login_idx on public.device_sessions (login_id);',
+    'alter table public.device_sessions enable row level security;',
+    'drop policy if exists ds_all on public.device_sessions;',
+    'create policy ds_all on public.device_sessions for all using (true) with check (true);'
+  ].join('\n'),
+
+  client_password_hashes: [
+    'create table if not exists public.client_password_hashes (',
+    '  login_id text primary key,',
+    '  password_hash text not null,',
+    '  updated_at timestamptz not null default now());',
+    'alter table public.client_password_hashes enable row level security;',
+    'drop policy if exists cph_all on public.client_password_hashes;',
+    'create policy cph_all on public.client_password_hashes for all using (true) with check (true);'
+  ].join('\n'),
+
+  // ---- v3 hardening: hashed admin password column on the existing config row ----
+  admin_config: [
+    'alter table public.admin_config add column if not exists password_hash text;'
+  ].join('\n'),
+
 };
 
 // Remember which tables we already attempted to provision this session so we
