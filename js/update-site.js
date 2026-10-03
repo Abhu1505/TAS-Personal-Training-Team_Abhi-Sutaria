@@ -225,6 +225,26 @@
     });
   }
 
+  /* ---------- Always-visible version badge + "What's New" button ---------- */
+  // Injected next to the portal title in the top bar, so SITE_VERSION is
+  // visible on the live site at all times (not only inside the popup).
+  // One place: reads SITE_VERSION constant above. Click opens the popup.
+  function injectVersionBadge() {
+    // One badge per dash-header (client + admin portals each get one).
+    document.querySelectorAll('.dash-header').forEach(host => {
+      if (host.querySelector('.us-version-badge')) return;
+      const actions = host.querySelector('.dash-header-actions') || host;
+      const wrap = document.createElement('span');
+      wrap.className = 'us-version-badge';
+      wrap.title = 'Current site version — click "What\'s New" to see updates';
+      wrap.innerHTML = '<span class="usvb-ver">' + esc(SITE_VERSION) + '</span>' +
+                       '<button class="usvb-btn" type="button">✨ What\'s New</button>';
+      actions.insertBefore(wrap, actions.firstChild);
+      const btn = wrap.querySelector('.usvb-btn');
+      if (btn) btn.addEventListener('click', () => openPopup(null));
+    });
+  }
+
   /* ---------- detection ---------- */
   async function checkForUpdate(firstRun) {
     try {
@@ -256,6 +276,7 @@
   window.initUpdateSiteWatcher = function () {
     if (window.__usWatchInit) return;
     window.__usWatchInit = true;
+    injectVersionBadge();
     checkForUpdate(true);
     setInterval(() => {
       if (!document.hidden && !updateReady) checkForUpdate(false);
