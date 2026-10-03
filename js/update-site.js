@@ -25,8 +25,12 @@
 //  • The "🔄 Update Site" buttons are hidden by default; they only
 //    ever appear via this script when an update is available.
 //
-// ➕ TO PUBLISH A NEW UPDATE: add ONE line at the TOP of RELEASES:
-//      { date: 'DD Mon YYYY', title: 'Short headline', items: [
+// ➕ VERSION NAMING: versions start at "HA 0.3". The version name is ONLY
+//    changed when the owner explicitly says so. Never bump it on your own.
+//
+// ➕ TO PUBLISH A NEW UPDATE (only after owner approves a new version name):
+//    add ONE line at the TOP of RELEASES and set SITE_VERSION to its ver:
+//      { ver: 'HA 0.4', date: 'DD Mon YYYY', title: 'Short headline', items: [
 //        'What changed…', 'Another change…' ] },
 //    Nothing else needs to be touched anywhere.
 // ============================================================
@@ -39,8 +43,12 @@
   let updateReady = false;
 
   /* ---------- 📝 RELEASE NOTES — single source of truth ---------- */
+  // ⚠️ VERSION POLICY: the version name changes ONLY when the owner says so.
+  //    Current released version: HA 0.3. Do not bump it on your own.
+  const SITE_VERSION = 'HA 0.3';
   const RELEASES = [
     {
+      ver: 'HA 0.3',
       date: '03 Oct 2026',
       title: 'Client portal navigation fix',
       items: [
@@ -49,7 +57,7 @@
     }
   ];
   // Fingerprint each release from its own text (stable across devices).
-  RELEASES.forEach(r => { r.fp = 'rel-' + djb2(r.date + '|' + r.title + '|' + r.items.join('|')); });
+  RELEASES.forEach(r => { r.fp = 'rel-' + djb2(r.ver + '|' + r.date + '|' + r.title + '|' + r.items.join('|')); });
 
   function djb2(str) {
     let h = 5381;
@@ -102,7 +110,7 @@
       return '<p>A newer version of this site is live on the server. Press <strong>🔄 Update Site</strong> to load it.</p>';
     }
     return rels.map(r =>
-      '<div class="us-rel"><div class="us-rel-head">' + esc(r.title) +
+      '<div class="us-rel"><div class="us-rel-head">' + esc(r.ver ? r.ver + ' — ' : '') + esc(r.title) +
       '<span class="us-rel-date">' + esc(r.date) + '</span></div>' +
       '<ul class="us-rel-list">' + r.items.map(i => '<li>' + esc(i) + '</li>').join('') +
       '</ul></div>'
@@ -121,6 +129,7 @@
       <div class="us-popup-box">
         <div class="usp-icon">🆕</div>
         <h3 id="uspTitle">A new update is available!</h3>
+        <p class="usp-lead" id="uspVersionLine">You are on version: <strong>${esc(SITE_VERSION)}</strong></p>
         <p class="usp-lead">Here's what has been updated:</p>
         <div class="usp-notes" id="uspNotes"></div>
         <p class="usp-foot">You are still viewing the old cached page — press
