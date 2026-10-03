@@ -1892,3 +1892,17 @@ input.calc-input[type=number]{-moz-appearance:textfield;}
 .mot-date{font-size:.72rem;color:#9aa;margin-top:.6rem;}
 .mot-actions{justify-content:center;gap:.6rem;}
 @media (prefers-reduced-motion:reduce){.kpi-tile:hover{transform:none;}.mot-emoji{animation:none;}}
+
+/* ---------- Always-visible version badge (injected by update-site.js) ---------- */
+.us-version-badge{display:inline-flex;align-items:center;gap:.45rem;margin-right:.35rem;}
+#usVersionBadge .usvb-ver,.us-version-badge .usvb-ver{
+  display:inline-block;padding:.28rem .6rem;border-radius:999px;font-size:.72rem;font-weight:800;
+  letter-spacing:.04em;color:#1d1503;background:linear-gradient(135deg,#ffd76a,#e9b53a);
+  box-shadow:0 2px 8px rgba(233,181,58,.45);white-space:nowrap;}
+.us-version-badge .usvb-btn{
+  border:1px solid rgba(233,181,58,.55);background:rgba(233,181,58,.12);color:inherit;
+  font-size:.74rem;font-weight:700;padding:.3rem .65rem;border-radius:999px;cursor:pointer;
+  transition:background .2s,transform .15s;white-space:nowrap;}
+.us-version-badge .usvb-btn:hover{background:rgba(233,181,58,.28);transform:translateY(-1px);}
+[data-theme="dark"] .us-version-badge .usvb-btn{color:#ffe9a8;}
+@media (max-width:600px){.us-version-badge{margin-right:.15rem}.us-version-badge .usvb-btn{padding:.25rem .5rem;font-size:.68rem}}
